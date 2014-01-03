@@ -1,0 +1,68 @@
+.block-ilp-gmtable {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.block-ilp-th {
+  background-color: lightGrey;
+}
+
+.block-ilp-gmtable tr.odd {
+  background-color: lightBlue;
+}
+
+.block-ilp-gmtable td.first,
+.block-ilp-gmtable th.first {
+  border-left: solid thin;
+}
+
+.block-ilp-gmtable th,
+td.block-ilp-td {
+  border-right: solid thin;
+}
+
+td.block-ilp-td {
+  white-space: nowrap;
+  text-align: center;
+}
+
+.block-ilp-gmtable tr.last {
+  border-bottom: solid thin;
+}
+
+.block-ilp-gmtable tr.top {
+  border-top: solid thin;
+}
+
+.block-ilp-submitted {
+  color: #000000;
+}
+
+.block-ilp-error {
+  background-color: #FF6666;
+}
+
+.block-ilp-submitbutton {
+  text-align: center;
+}
+
+.block-ilp-title {
+  text-align: center;
+  font-size: 1.5em;
+  margin: 5px;
+}
+
+.block-ilp-link-to-grades {
+    margin-top: 10px;
+}
+
+.block-ilp-groupselector div.groupselector {
+    float: inherit;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.block-ilp-gradepopulate {
+    text-align: center;
+    margin-bottom: 10px;
+}

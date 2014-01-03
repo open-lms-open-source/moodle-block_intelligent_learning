@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="blocks/intelligent_learning/db" VERSION="20110209" COMMENT="XMLDB file for Moodle blocks/intelligent_learning"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="block_intelligent_learning" COMMENT="Datatel midterm grades">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" NEXT="course"/>
+        <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="Id of the course the entry belongs to" PREVIOUS="id" NEXT="userid"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="Id of the user the row belongs to." PREVIOUS="course" NEXT="mt1"/>
+        <FIELD NAME="mt1" TYPE="char" LENGTH="5" NOTNULL="false" SEQUENCE="false" COMMENT="Midterm grade 1" PREVIOUS="userid" NEXT="mt1userid"/>
+        <FIELD NAME="mt1userid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="The user who last modified this midterm grade" PREVIOUS="mt1" NEXT="mt1timemodified"/>
+        <FIELD NAME="mt1timemodified" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="The time when this midterm grade was last changed" PREVIOUS="mt1userid" NEXT="mt2"/>
+        <FIELD NAME="mt2" TYPE="char" LENGTH="5" NOTNULL="false" SEQUENCE="false" COMMENT="Midterm grade 2" PREVIOUS="mt1timemodified" NEXT="mt2userid"/>
+        <FIELD NAME="mt2userid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="The user who last modified this midterm grade" PREVIOUS="mt2" NEXT="mt2timemodified"/>
+        <FIELD NAME="mt2timemodified" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="The time when this midterm grade was last changed" PREVIOUS="mt2userid" NEXT="mt3"/>
+        <FIELD NAME="mt3" TYPE="char" LENGTH="5" NOTNULL="false" SEQUENCE="false" COMMENT="Midterm grade 3" PREVIOUS="mt2timemodified" NEXT="mt3userid"/>
+        <FIELD NAME="mt3userid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="The user who last modified this midterm grade" PREVIOUS="mt3" NEXT="mt3timemodified"/>
+        <FIELD NAME="mt3timemodified" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="The time when this midterm grade was last changed" PREVIOUS="mt3userid" NEXT="mt4"/>
+        <FIELD NAME="mt4" TYPE="char" LENGTH="5" NOTNULL="false" SEQUENCE="false" COMMENT="Midterm grade 4" PREVIOUS="mt3timemodified" NEXT="mt4userid"/>
+        <FIELD NAME="mt4userid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="The user who last modified this midterm grade" PREVIOUS="mt4" NEXT="mt4timemodified"/>
+        <FIELD NAME="mt4timemodified" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="The time when this midterm grade was last changed" PREVIOUS="mt4userid" NEXT="mt5"/>
+        <FIELD NAME="mt5" TYPE="char" LENGTH="5" NOTNULL="false" SEQUENCE="false" COMMENT="Midterm grade 5" PREVIOUS="mt4timemodified" NEXT="mt5userid"/>
+        <FIELD NAME="mt5userid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="The user who last modified this midterm grade" PREVIOUS="mt5" NEXT="mt5timemodified"/>
+        <FIELD NAME="mt5timemodified" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="The time when this midterm grade was last changed" PREVIOUS="mt5userid" NEXT="mt6"/>
+        <FIELD NAME="mt6" TYPE="char" LENGTH="5" NOTNULL="false" SEQUENCE="false" COMMENT="Midterm grade 6" PREVIOUS="mt5timemodified" NEXT="mt6userid"/>
+        <FIELD NAME="mt6userid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="The user who last modified this midterm grade" PREVIOUS="mt6" NEXT="mt6timemodified"/>
+        <FIELD NAME="mt6timemodified" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="The time when this midterm grade was last changed" PREVIOUS="mt6userid" NEXT="finalgrade"/>
+        <FIELD NAME="finalgrade" TYPE="char" LENGTH="5" NOTNULL="false" SEQUENCE="false" COMMENT="Final grade" PREVIOUS="mt6timemodified" NEXT="finalgradeuserid"/>
+        <FIELD NAME="finalgradeuserid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="The user who last modified the finalgrade" PREVIOUS="finalgrade" NEXT="finalgradetimemodified"/>
+        <FIELD NAME="finalgradetimemodified" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="The time when finalgrade was last changed" PREVIOUS="finalgradeuserid" NEXT="expiredate"/>
+        <FIELD NAME="expiredate" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" PREVIOUS="finalgradetimemodified" NEXT="expiredateuserid"/>
+        <FIELD NAME="expiredateuserid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="Id of the user who last modified the expiredate field for this record" PREVIOUS="expiredate" NEXT="expiredatetimemodified"/>
+        <FIELD NAME="expiredatetimemodified" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="Last time the expiredate field for this record was modified" PREVIOUS="expiredateuserid" NEXT="lastaccess"/>
+        <FIELD NAME="lastaccess" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" PREVIOUS="expiredatetimemodified" NEXT="lastaccessuserid"/>
+        <FIELD NAME="lastaccessuserid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="Id of the user who last modified the lastaccess field for this record" PREVIOUS="lastaccess" NEXT="lastaccesstimemodified"/>
+        <FIELD NAME="lastaccesstimemodified" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="Timestamp of when the lastaccess field for this record was lat modified" PREVIOUS="lastaccessuserid" NEXT="neverattended"/>
+        <FIELD NAME="neverattended" TYPE="int" LENGTH="5" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" PREVIOUS="lastaccesstimemodified" NEXT="neverattendeduserid"/>
+        <FIELD NAME="neverattendeduserid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="Id of the user who last modified the neverattended field for this record" PREVIOUS="neverattended" NEXT="neverattendedtimemodified"/>
+        <FIELD NAME="neverattendedtimemodified" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="Timestamp for the last time the neverattended field for this record was modified" PREVIOUS="neverattendeduserid" NEXT="timemodified"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="When the entry was submitted" PREVIOUS="neverattendedtimemodified"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid" UNIQUE="false" FIELDS="userid" COMMENT="Index on the userid field" NEXT="course"/>
+        <INDEX NAME="course" UNIQUE="false" FIELDS="course" COMMENT="Index on course id" PREVIOUS="userid" NEXT="mt1userid"/>
+        <INDEX NAME="mt1userid" UNIQUE="false" FIELDS="mt1userid" PREVIOUS="course" NEXT="mt2userid"/>
+        <INDEX NAME="mt2userid" UNIQUE="false" FIELDS="mt2userid" PREVIOUS="mt1userid" NEXT="mt3userid"/>
+        <INDEX NAME="mt3userid" UNIQUE="false" FIELDS="mt3userid" PREVIOUS="mt2userid" NEXT="mt4userid"/>
+        <INDEX NAME="mt4userid" UNIQUE="false" FIELDS="mt4userid" PREVIOUS="mt3userid" NEXT="mt5userid"/>
+        <INDEX NAME="mt5userid" UNIQUE="false" FIELDS="mt5userid" PREVIOUS="mt4userid" NEXT="mt6userid"/>
+        <INDEX NAME="mt6userid" UNIQUE="false" FIELDS="mt6userid" PREVIOUS="mt5userid" NEXT="finalgradeuserid"/>
+        <INDEX NAME="finalgradeuserid" UNIQUE="false" FIELDS="finalgradeuserid" PREVIOUS="mt6userid" NEXT="expiredateuserid"/>
+        <INDEX NAME="expiredateuserid" UNIQUE="false" FIELDS="expiredateuserid" PREVIOUS="finalgradeuserid" NEXT="lastaccessuserid"/>
+        <INDEX NAME="lastaccessuserid" UNIQUE="false" FIELDS="lastaccessuserid" PREVIOUS="expiredateuserid" NEXT="neverattendeduserid"/>
+        <INDEX NAME="neverattendeduserid" UNIQUE="false" FIELDS="neverattendeduserid" PREVIOUS="lastaccessuserid"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

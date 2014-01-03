@@ -1,0 +1,303 @@
+<?php
+/**
+ * ILP Integration
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://opensource.org/licenses/gpl-3.0.html.
+ *
+ * @copyright Copyright (c) 2012 Moodlerooms Inc. (http://www.moodlerooms.com)
+ * @license http://opensource.org/licenses/gpl-3.0.html GNU Public License
+ * @package block_intelligent_learning
+ * @author Sam Chaffee
+ */
+
+require_once($CFG->dirroot.'/blocks/intelligent_learning/model/service/abstract.php');
+/**
+ * Course Service Model
+ *
+ * @author Mark Nielsen
+ * @author Sam Chaffee
+ * @package block_intelligent_learning
+ */
+class blocks_intelligent_learning_model_service_course extends blocks_intelligent_learning_model_service_abstract {
+    /**
+     * Synced course fields
+     *
+     * @var array
+     */
+    private $coursefields = array(
+        'shortname',
+        'category',
+        'fullname',
+        'idnumber',
+        'summary',
+        'format',
+        'showgrades',
+        'startdate',
+        'numsections',
+        'visible',
+        'groupmode',
+        'groupmodeforce',
+    );
+
+    /**
+     * Course Provisioning
+     *
+     * @param string $xml XML with course data
+     * @throws Exception
+     * @return string
+     */
+    public function handle($xml) {
+        global $DB;
+
+        list($action, $data) = $this->helper->xmlreader->validate_xml($xml, $this);
+
+        if (empty($data['idnumber'])) {
+            throw new Exception('No idnumber passed, required');
+        }
+
+        // Try to get the course that we are operating on
+        $course = false;
+        if ($courseid = $DB->get_field('course', 'id', array('idnumber' => $data['idnumber']))) {
+            $course = course_get_format($courseid)->get_course();
+        }
+
+        switch($action) {
+            case 'create':
+            case 'add':
+            case 'update':
+            case 'change':
+                if ($course) {
+                    $this->update($course, $data);
+                } else {
+                    if (empty($data['shortname'])) {
+                        throw new Exception('No shortname passed, required when creating a course');
+                    }
+                    if (empty($data['fullname'])) {
+                        throw new Exception('No fullname passed, required when creating a course');
+                    }
+                    $course = $this->add($data);
+                }
+                break;
+            case 'remove':
+            case 'delete':
+            case 'drop':
+                if ($course and !@delete_course($course, false)) {
+                    throw new Exception("Failed to delete course (idnumber = $course->idnumber)");
+                }
+                break;
+            default:
+                throw new Exception("Invalid action found: $action.  Valid actions: create, update, change and remove");
+        }
+        return $this->response->course_handle($course);
+    }
+
+    /**
+     * Add a course
+     *
+     * @param array $data Course data
+     * @throws Exception
+     * @return object
+     */
+    protected function add($data) {
+        global $DB;
+
+        $course = array();
+        foreach ($this->coursefields as $field) {
+            if (isset($data[$field])) {
+                $course[$field] = $data[$field];
+            }
+        }
+        $course   = (object) $course;
+        $defaults = array(
+            'startdate'      => time() + 3600 * 24,
+            'summary'        => get_string('defaultcoursesummary'),
+            'format'         => 'weeks',
+            'guest'          => 0,
+            'numsections'    => 10,
+            'idnumber'       => '',
+            'newsitems'      => 5,
+            'showgrades'     => 1,
+            'groupmode'      => 0,
+            'groupmodeforce' => 0,
+            'visible'        => 1,
+        );
+
+        $courseconfigs = get_config('moodlecourse');
+        if (!empty($courseconfigs)) {
+            foreach ($courseconfigs as $name => $value) {
+                $defaults[$name] = $value;
+            }
+        }
+
+        // Apply defaults to the course object
+        foreach ($defaults as $key => $value) {
+            if (!isset($course->$key) or (!is_numeric($course->$key) and empty($course->$key))) {
+                $course->$key = $value;
+            }
+        }
+
+        // Last adjustments
+        fix_course_sortorder();  // KEEP (Packs sort order)
+        unset($course->id);
+        $course->category    = $this->process_category($course);
+        $course->timecreated = time();
+        $course->shortname   = substr($course->shortname, 0, 100);
+        $course->sortorder   = $DB->get_field('course', 'COALESCE(MAX(sortorder)+1, 100) AS max', array('category' => $course->category));
+
+        if (isset($course->idnumber)) {
+            $course->idnumber = substr($course->idnumber, 0, 100);
+        }
+
+        try {
+            $courseid = $DB->insert_record('course', $course);
+        } catch (dml_exception $e) {
+            throw new Exception("Could not create new course idnumber = $course->idnumber");
+        }
+
+        // Save course format options
+        course_get_format($courseid)->update_course_format_options($course);
+
+        // Create the context so Moodle queries work OK
+        context_course::instance($courseid);
+
+        // Make sure sort order is correct and category paths are created
+        fix_course_sortorder();
+
+        try {
+            $course = course_get_format($courseid)->get_course();
+
+            // Create a default section.
+            course_create_sections_if_missing($course, 0);
+
+            blocks_add_default_course_blocks($course);
+        } catch (dml_exception $e) {
+            throw new Exception("Failed to get course object from database id = $courseid");
+        }
+
+        return $course;
+    }
+
+    /**
+     * Update a course
+     *
+     * @param object $course Current Moodle course
+     * @param array $data New course data
+     * @throws Exception
+     * @return void
+     */
+    protected function update($course, $data) {
+        global $DB;
+
+        // Process category
+        if (isset($data['category'])) {
+            $data['category'] = $this->process_category($data);
+        }
+
+        $update = false;
+        $record = new stdClass;
+        foreach ($data as $key => $value) {
+            if (!in_array($key, $this->coursefields)) {
+                continue;
+            }
+            if ($key != 'id' and isset($course->$key) and $course->$key != $value) {
+                switch ($key) {
+                    case 'idnumber':
+                    case 'shortname':
+                        $record->$key = substr($value, 0, 100);
+                        break;
+                    default:
+                        $record->$key = $value;
+                        break;
+                }
+                $update = true;
+            }
+        }
+        if ($update) {
+            // Make sure this is set properly
+            $record->id = $course->id;
+            $record->timemodified = time();
+
+            try {
+                $DB->update_record('course', $record);
+
+                // Save course format options
+                course_get_format($course->id)->update_course_format_options($record, $course);
+            } catch (dml_exception $e) {
+                throw new Exception('Failed to update course with id = '.$record->id);
+            }
+        }
+    }
+
+    /**
+     * Process the category from the external database
+     *
+     * @param object|array $course External course
+     * @param int $defaultcategory Default category if category lookup fails
+     * @throws Exception
+     * @return int
+     */
+    protected function process_category($course, $defaultcategory = NULL) {
+        global $CFG, $DB;
+
+        if (is_array($course)) {
+            $course = (object) $course;
+        }
+
+        if (isset($course->category) and is_numeric($course->category)) {
+            if ($DB->record_exists('course_categories', array('id' => $course->category))) {
+                return $course->category;
+            }
+        } else if (isset($course->category)) {
+            // Apply separator
+            $category   = trim($course->category, '|');
+            $categories = explode('|', $category);
+
+            $parentid = $depth = 0;
+            foreach ($categories as $catname) {  // Meow!
+                $depth++;
+
+                if ($category = $DB->get_record('course_categories', array('name' => $catname, 'parent' => $parentid))) {
+                    $parentid = $category->id;
+                } else {
+                    $category = new stdClass();
+                    $category->name      = $catname;
+                    $category->parent    = $parentid;
+                    $category->sortorder = 999;
+                    $category->depth     = $depth;
+
+                    try {
+                        $category->id = $DB->insert_record('course_categories', $category);
+                    } catch (dml_exception $e) {
+                        throw new Exception("Could not create the new category: $category->name");
+                    }
+
+                    $context = context_coursecat::instance($category->id);
+                    $context->mark_dirty();
+
+                    $parentid = $category->id;
+                }
+            }
+
+            if (!empty($category) and strtolower($category->name) == strtolower(end($categories))) {
+                // We found or created our category
+                return $category->id;
+            }
+        }
+
+        if (!is_null($defaultcategory)) {
+            return $defaultcategory;
+        }
+        return $CFG->defaultrequestcategory;
+    }
+}
