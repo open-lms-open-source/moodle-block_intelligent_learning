@@ -22,6 +22,9 @@
  */
 
 require_once($CFG->dirroot.'/blocks/intelligent_learning/model/service/abstract.php');
+require_once($CFG->dirroot.'/course/lib.php');
+require_once($CFG->dirroot.'/course/format/lib.php');
+
 /**
  * Course Service Model
  *
