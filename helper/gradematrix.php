@@ -528,7 +528,7 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
 
         $jsarray      = array();
         $usergrades   = $this->gradematrix->get_usergrades();
-        $gradeletters = grade_get_letters(get_context_instance(CONTEXT_COURSE, $COURSE->id));
+        $gradeletters = grade_get_letters(context_course::instance($COURSE->id));
         foreach ($usergrades as $usergrade) {
             if (in_array($usergrade->currentgrade->letter, $gradeletters)) {
                 $jsarray[$usergrade->uid] = $usergrade->currentgrade->letter;

@@ -117,7 +117,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             $activities = array();
 
             // See if they have a gradebook role in the course
-            if (!$roles = get_user_roles(get_context_instance(CONTEXT_COURSE, $course->id), $user->id)) {
+            if (!$roles = get_user_roles(context_course::instance($course->id), $user->id)) {
                 // Shouldn't happen, they should already be confirmed to have a role in this course
                 unset($courses[$course->id]);
                 continue;

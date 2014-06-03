@@ -64,7 +64,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
         $idnumber = clean_param($idnumber, PARAM_TEXT);
 
         if (empty($idnumber)) {
-            if (!$courses = enrol_get_users_courses($user->id, true, 'modinfo')) {
+            if (!$courses = enrol_get_users_courses($user->id, true, '*')) {
                 $courses = array();
             }
 
@@ -73,7 +73,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
                 if ($course->id == SITEID) {
                     throw new Exception("Cannot access site course (idnumber = $course->idnumber)");
                 }
-                $context = get_context_instance(CONTEXT_COURSE, $course->id);
+                $context = context_course::instance($course->id);
 
                 if (!$course->visible and !has_capability('moodle/course:viewhiddencourses', $context, $user->id)) {
                     throw new Exception("User (username = $user->username) cannot view hidden course (idnumber = $course->idnumber)");
@@ -124,7 +124,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
         // Gather recent activity
         foreach ($courses as $course) {
             $modinfo       = get_fast_modinfo($course, $USER->id);
-            $viewfullnames = has_capability('moodle/site:viewfullnames', get_context_instance(CONTEXT_COURSE, $course->id));
+            $viewfullnames = has_capability('moodle/site:viewfullnames', context_course::instance($course->id));
             $activities    = array();
             $index         = 0;
 

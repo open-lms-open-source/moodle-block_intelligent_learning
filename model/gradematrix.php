@@ -280,13 +280,20 @@ class block_intelligent_learning_model_gradematrix {
         }
         $sortorder = $this->get_sort_order('u');
 
+        $context = context_course::instance($this->courseid);
+        if ($parents = $context->get_parent_context_ids()) {
+            $contextstr = ' IN ('.$context->id.','.implode(',', $parents).')';
+        } else {
+            $contextstr = ' ='.$context->id;
+        }
+
         $sql = "SELECT DISTINCT u.id as uid, u.firstname, u.lastname, u.idnumber, il.id, il.course, il.userid, il.mt1, il.mt2, il.mt3, il.mt4, il.mt5, il.mt6, il.finalgrade, il.expiredate, il.lastaccess, il.neverattended
                   FROM {user} u
                   JOIN {role_assignments} ra ON u.id = ra.userid
              LEFT JOIN {block_intelligent_learning} il ON u.id = il.userid AND il.course = :courseid
                        $groupjoin
                  WHERE ra.roleid in ($CFG->gradebookroles)$groupwhere
-                   AND ra.contextid ".get_related_contexts_string(get_context_instance(CONTEXT_COURSE, $this->courseid)).
+                   AND ra.contextid $contextstr " .
             " ORDER BY $sortorder";
 
         $params['courseid'] = $this->courseid;

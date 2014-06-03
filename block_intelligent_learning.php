@@ -69,7 +69,7 @@ class block_intelligent_learning extends block_list {
         //check to make sure the settings have been set
         if (empty($ilpurl) or empty($attendancepid) or empty($retentionalertpid) or empty($stgradebookpid)) {
             $this->content->items[] = html_writer::tag('span', get_string('needsadminsetup', 'block_intelligent_learning'), array('class' => 'error'));
-            if (has_capability('moodle/site:config', get_context_instance(CONTEXT_SYSTEM))) {
+            if (has_capability('moodle/site:config', context_system::instance())) {
                 $this->content->items[] = html_writer::link("$CFG->wwwroot/admin/settings.php?section=blocksettingintelligent_learning", get_string('configure', 'block_intelligent_learning'));
             }
             return $this->content;
@@ -78,13 +78,13 @@ class block_intelligent_learning extends block_list {
         $backtodatatellink = get_string('backtodatatel', 'block_intelligent_learning');
         $this->content->items[] = html_writer::link($ilpurl, $backtodatatellink, array('title' => $backtodatatellink));
 
-        $syscontext = get_context_instance(CONTEXT_SYSTEM);
+        $syscontext = context_system::instance();
         $pinned     = ($syscontext->id == $this->instance->parentcontextid) && ($this->instance->showinsubcontexts == 1);
 
         if (empty($pinned)) {
-            $editcap = has_capability('block/intelligent_learning:edit', get_context_instance(CONTEXT_BLOCK, $this->instance->id));
+            $editcap = has_capability('block/intelligent_learning:edit', context_block::instance($this->instance->id));
         } else {
-            $editcap = has_capability('block/intelligent_learning:edit', get_context_instance(CONTEXT_COURSE, $COURSE->id));
+            $editcap = has_capability('block/intelligent_learning:edit', context_course::instance($COURSE->id));
         }
 
         if ($COURSE->id != SITEID and $editcap) {
