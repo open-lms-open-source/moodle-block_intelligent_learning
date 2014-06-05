@@ -357,7 +357,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             throw new Exception('No username passed, required');
         }
         $username = clean_param($data['username'], PARAM_TEXT);
-        $username = moodle_strtolower($username);
+        $username = core_text::strtolower($username);
 
         if (mb_strlen($username) > 100) {
             throw new Exception("The username is over 100 characters long and cannot be used by Moodle: $username");
