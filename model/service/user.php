@@ -479,4 +479,909 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             }
         }
     }
+	
+	
+	//////////////////////////////////////NEW ILP API starts here/////////////////////////////////////////////////////////////
+	
+
+  /**
+	* Test function 
+	* 
+	* @return array
+	*/
+	public function aboutMoodle() {
+		
+		$result['Version'] = $CFG->version;
+		//die( "  "+var_export($result));
+		return $result;
+	}
+
+
+
+	 /**
+     * Get courses where user is enrolled with these roles.
+     *
+     * @param integer $userid
+     * @param array $roles_enrolled
+     * @paramt integer $startdate - Is used to filter by startdate course (date in timestamp)
+     * @return array
+     */
+    private static function get_courses_where_user_is_enrolled($userid, $startdate = null){
+
+        global $DB;
+        $field_courseid = 'idnumber';
+        $result = array();
+		$roles_enrolled = self::get_student_roleid();
+		//die(var_export($roles_enrolled , true));
+        
+        $sql_param['userid'] = $userid;
+        $sql_param['contextcourse'] = CONTEXT_COURSE;
+       	list($usql, $sql_param_in) = $DB->get_in_or_equal($roles_enrolled, SQL_PARAMS_NAMED);
+        $sql_param = array_merge($sql_param,$sql_param_in);
+		//die(var_export($sql_param , true));
+        $sql = "SELECT c.id , c.{$field_courseid}
+        		  FROM {course} c
+        		  JOIN {context} ctx ON c.id = ctx.instanceid
+                  JOIN {role_assignments} ra ON ra.contextid = ctx.id
+                  JOIN {user} u ON u.id = ra.userid
+                 WHERE u.idnumber = :userid
+                   AND ctx.contextlevel = :contextcourse
+                   AND ra.roleid $usql";
+		//die($usql);
+        if(!empty($field_courseid) && !empty($term)){
+            //get course field name seted in config block
+            //$sql_param['term'] = $DB->sql_like_escape($term.'_', '|').'%';
+            //$sql .= ' AND '.$DB->sql_like('c.'.$field_courseid, ':term', false, true, false, '|');
+        }
+        $istartdate = (int)$startdate;
+        if($istartdate > 0) {
+            $sql_param['startdate'] = $startdate;
+            $sql .= ' AND c.startdate <= :startdate ';
+        }
+
+        $result = $DB->get_records_sql($sql, $sql_param);
+        return $result;
+
+    }
+
+	/**
+	* Get activities from users in  selected
+	*
+	* @param array   $studentIds
+	* @param integer $startdate - timestamp
+	* @param integer $enddate - timestamp
+	*
+	* @return array
+	*/
+	public function get_user_activities($studentIds, $startDate = null, $endDate = null) {
+
+		global $DB;
+		//$courses = self :: get_courses_where_user_is_enrolled($sectionIds);
+		//die(var_export($courses, false));
+		$results = array ();
+		$userids = array ();
+
+		if (strlen($studentIds) > 0) {
+			//add quotes to incoming list
+			$userids = explode(",", $studentIds);
+		}
+
+		// die(var_export($userids , true));
+
+		foreach ($userids as $userid) {
+			$sections = self :: get_courses_where_user_is_enrolled($userid , $startDate);
+			//die(var_export($sections, false));
+			foreach ($sections as $section){
+			$result = array ();
+			$courses = array();
+			$courses[] = $section->id;
+			//die(var_export($courses , true));
+			$sql_param = array ();
+			$sql_param['userid'] = $userid;
+
+			$sql = "SELECT u.id,
+			        			   u.idnumber as sourcedid,
+			                       u.firstname,
+			                       u.lastname,
+			                       u.email
+			                  FROM {user} u
+			                  WHERE u.idnumber = :userid";
+
+			$user = $DB->get_record_sql($sql, $sql_param);
+
+			if (empty ($user)) {
+				return $result;
+			}
+
+			$result['id'] = $user->id;
+			$result['sourcedid'] = $user->sourcedid;
+			$result['courseid'] = $section->idnumber;
+			$result['firstname'] = $user->firstname;
+			$result['lastname'] = $user->lastname;
+			$result['email'] = $user->email;
+
+			$result['AssessmentsBegun'] = self :: get_count_assessments_begun($user->id, $courses, $startDate, $endDate);
+			$result['AssessmentsFinished'] = self :: get_count_assessments_finished($user->id, $courses, $startDate, $endDate);
+
+			$result['AssignmentsRead'] = self :: get_assignments_read($user->id, $courses, $startDate, $endDate);
+			$result['AssignmentsSubmitted'] = self :: get_assignments_submissions($user->id, $courses, $startDate, $endDate);
+
+			$result['ContentPagesViewed'] = self :: get_count_contentpages_viewed($user->id, $courses, $startDate, $endDate);
+
+			$result['DiscussionPostsCreated'] = self :: get_count_forum_posts($user->id, $courses, $startDate, $endDate);
+			$result['DiscussionPostsRead'] = self :: get_count_forum_posts_read($user->id, $courses, $startDate, $endDate);
+
+			$result['NumberCMSSessions'] = self :: get_count_sessions($user->id, $courses, $startDate, $endDate);
+
+			$result['CalendarEntriesAdded'] = self :: get_count_calendar_added($user->id, $courses, $startDate, $endDate);
+			
+			
+			//die(var_export($result , true));
+			$results[] = array (
+				'activity' => $result
+			);
+			}
+		}
+
+		return $this->response->standard($results);
+
+	}
+
+	/**
+	 *
+	 * @param int   $userid
+	 * @param int[] $courses
+	 * @param int   $startdate
+	 * @param int   $enddate
+	 * @return int
+	 */
+	private static function get_count_calendar_added($userid, array $courses, $startdate = null, $enddate = null) {
+		global $DB;
+		$sql_param = array ();
+		list ($user_sql, $sql_param1) = $DB->get_in_or_equal($userid, SQL_PARAMS_NAMED);
+		$sql_param = array_merge($sql_param, $sql_param1);
+		$select = "(userid $user_sql)";
+		$select .= " AND (module='calendar') AND (action='add')";
+		if (empty ($courses)) {
+			list ($course_sql, $sql_param2) = $DB->get_in_or_equal($courses, SQL_PARAMS_NAMED);
+			$sql_param = array_merge($sql_param, $sql_param2);
+			$select .= " AND (course $course_sql)";
+		}
+		if ($startdate !== null) {
+			$sql_param['startdate'] = $startdate;
+			$select .= " AND (time >= :startdate)";
+		}
+		if (($enddate !== null) && ($enddate >= $startdate)) {
+			$sql_param['enddate'] = $enddate +DAYSECS;
+			$select .= " AND (time < :enddate)";
+		}
+
+		$result = $DB->count_records_select('log', $select, $sql_param);
+		return $result;
+	}
+
+	
+	/**
+	* Get count of assessments begun by user in course/s
+	*
+	* @param integer $userid
+	* @param array $courses
+	* @param integer $startdate - timestamp
+	* @param integer $enddate - timestamp
+	*
+	* @return integer
+	*/
+	private static function get_count_assessments_begun($userid, array $courses, $startdate = null, $enddate = null) {
+
+		global $DB;
+
+		$sql_param = array ();
+		$sql_param['userid'] = $userid;
+
+		list ($course_sql, $sql_param2) = $DB->get_in_or_equal($courses, SQL_PARAMS_NAMED);
+		$sql_param = array_merge($sql_param, $sql_param2);
+
+		$sql = "SELECT COUNT(DISTINCT(qa.quiz))
+		                        FROM {quiz} q
+		                        JOIN {quiz_attempts} qa ON q.id = qa.quiz
+		                	   WHERE q.course $course_sql
+		                         AND qa.userid = :userid";
+
+		if ($startdate !== null) {
+			$sql_param['startdate'] = $startdate;
+			$sql .= " AND qa.timestart >= :startdate";
+		}
+		if (($enddate !== null) && ($enddate >= $startdate)) {
+			$sql_param['enddate'] = $enddate +DAYSECS;
+			$sql .= " AND qa.timestart < :enddate";
+		}
+
+		return $DB->count_records_sql($sql, $sql_param);
+
+	}
+
+	/**
+	* Get count of assessments finished by user in course/s
+	*
+	* @param integer $userid
+	* @param array $courses
+	* @param integer $startdate - timestamp
+	* @param integer $enddate - timestamp
+	*
+	* @return integer
+	*/
+	private static function get_count_assessments_finished($userid, array $courses, $startdate = null, $enddate = null) {
+
+		global $DB;
+
+		$sql_param = array ();
+		$sql_param['userid'] = $userid;
+		list ($course_sql, $sql_param2) = $DB->get_in_or_equal($courses, SQL_PARAMS_NAMED);
+		$sql_param = array_merge($sql_param, $sql_param2);
+
+		$sql = "SELECT COUNT(*)
+		                        FROM {quiz} q
+		                        JOIN {quiz_grades} qg ON qg.quiz = q.id
+		                	   WHERE q.course $course_sql
+		                         AND qg.userid = :userid";
+
+		if ($startdate !== null) {
+			$sql_param['startdate'] = $startdate;
+			$sql .= " AND qg.timemodified >= :startdate";
+		}
+		if (($enddate !== null) && ($enddate >= $startdate)) {
+			$sql_param['enddate'] = $enddate +DAYSECS;
+			$sql .= " AND qg.timemodified < :enddate";
+		}
+
+		return $DB->count_records_sql($sql, $sql_param);
+	}
+
+	/**
+	 * Get count of assignments submitted by user in course/s
+	 *
+	 * @param integer $userid
+	 * @param array $courses
+	 * @param integer $startdate - timestamp
+	 * @param integer $enddate - timestamp
+	 *
+	 * @return integer
+	 */
+	private static function get_assignments_submissions($userid, array $courses, $startdate = null, $enddate = null) {
+
+		global $DB;
+
+		$sql_param = array ();
+		$sql_param['userid'] = $userid;
+		list ($course_sql, $sql_param2) = $DB->get_in_or_equal($courses, SQL_PARAMS_NAMED);
+		$sql_param = array_merge($sql_param, $sql_param2);
+
+		$sql = "SELECT COUNT(*)
+		                		  FROM {assign} a
+		        		          JOIN {assign_submission} asub ON a.id = asub.assignment
+		                         WHERE a.course $course_sql
+		                           AND asub.userid = :userid";
+
+		if ($startdate !== null) {
+			$sql_param['startdate'] = $startdate;
+			$sql .= " AND asub.timecreated >= :startdate";
+		}
+		if (($enddate !== null) && ($enddate >= $startdate)) {
+			$sql_param['enddate'] = $enddate +DAYSECS;
+			$sql .= " AND asub.timecreated < :enddate";
+		}
+
+		return $DB->count_records_sql($sql, $sql_param);
+	}
+
+	/**
+	* Get count of assignments readed by user in course/s
+	*
+	* @param integer $userid
+	* @param array $courses
+	* @param integer $startdate - timestamp
+	* @param integer $enddate - timestamp
+	*
+	* @return integer
+	*/
+	private static function get_assignments_read($userid, array $courses, $startdate = null, $enddate = null) {
+
+		global $DB;
+
+		$sql_param = array ();
+		$sql_param['userid'] = $userid;
+		list ($course_sql, $sql_param2) = $DB->get_in_or_equal($courses, SQL_PARAMS_NAMED);
+		$sql_param = array_merge($sql_param, $sql_param2);
+
+		$sql = "SELECT COUNT(DISTINCT(cmid))
+		                        FROM {log} l
+		                	   WHERE l.course $course_sql
+		                	     AND l.module = 'assign'
+		                	     AND l.action = 'view'
+		                         AND l.userid = :userid";
+
+		if ($startdate !== null) {
+			$sql_param['startdate'] = $startdate;
+			$sql .= " AND l.time >= :startdate";
+		}
+		if (($enddate !== null) && ($enddate >= $startdate)) {
+			$sql_param['enddate'] = $enddate +DAYSECS;
+			$sql .= " AND l.time < :enddate";
+		}
+
+		return $DB->count_records_sql($sql, $sql_param);
+	}
+
+	/**
+	* Get count of content pages viewed by user in course/s
+	*
+	* @param integer $userid
+	* @param array $courses
+	* @param integer $startdate - timestamp
+	* @param integer $enddate - timestamp
+	*
+	* @return integer
+	*/
+	private static function get_count_contentpages_viewed($userid, array $courses, $startdate = null, $enddate = null) {
+
+		global $DB;
+
+		$sql_param = array ();
+		$sql_param['userid'] = $userid;
+		list ($course_sql, $sql_param2) = $DB->get_in_or_equal($courses, SQL_PARAMS_NAMED);
+		$sql_param = array_merge($sql_param, $sql_param2);
+
+		$sql = "SELECT COUNT(DISTINCT(cmid))
+		                                FROM {log} l
+		                                JOIN {modules} m ON m.name = l.module
+		                                JOIN {course_modules} cm ON cm.module = m.id AND cm.id = l.cmid
+		                        	   WHERE cm.course $course_sql
+		                        	     AND l.action LIKE '%view%'
+		                                 AND l.userid = :userid";
+
+		if ($startdate !== null) {
+			$sql_param['startdate'] = $startdate;
+			$sql .= " AND l.time >= :startdate";
+		}
+		if (($enddate !== null) && ($enddate >= $startdate)) {
+			$sql_param['enddate'] = $enddate +DAYSECS;
+			$sql .= " AND l.time < :enddate";
+		}
+
+		return $DB->count_records_sql($sql, $sql_param);
+	}
+
+	/**
+	* Get count of posts in forum created by user in course/s
+	*
+	* @param integer $userid
+	* @param array $courses
+	* @param integer $startdate - timestamp
+	* @param integer $enddate - timestamp
+	*
+	* @return integer
+	*/
+	private static function get_count_forum_posts($userid, array $courses, $startdate = null, $enddate = null) {
+
+		global $DB;
+
+		$sql_param = array ();
+		$sql_param['userid'] = $userid;
+		list ($course_sql, $sql_param2) = $DB->get_in_or_equal($courses, SQL_PARAMS_NAMED);
+		$sql_param = array_merge($sql_param, $sql_param2);
+
+		$sql = "SELECT COUNT(*)
+		            		  FROM {forum_posts} fp
+		    		          JOIN {forum_discussions} fd ON fd.id = fp.discussion
+		                     WHERE fd.course $course_sql
+		                       AND fp.userid = :userid";
+
+		if ($startdate !== null) {
+			$sql_param['startdate'] = $startdate;
+			$sql .= " AND fp.created >= :startdate";
+		}
+		if (($enddate !== null) && ($enddate >= $startdate)) {
+			$sql_param['enddate'] = $enddate +DAYSECS;
+			$sql .= " AND fp.created < :enddate";
+		}
+
+		return $DB->count_records_sql($sql, $sql_param);
+	}
+
+	/**
+	* Get count of posts in forum readed by user in course/s
+	*
+	* @param integer $userid
+	* @param array $courses
+	* @param integer $startdate - timestamp
+	* @param integer $enddate - timestamp
+	*
+	* @return integer
+	*/
+	private static function get_count_forum_posts_read($userid, array $courses, $startdate = null, $enddate = null) {
+
+		global $DB;
+
+		$sql_param = array ();
+		$sql_param['userid'] = $userid;
+		list ($course_sql, $sql_param2) = $DB->get_in_or_equal($courses, SQL_PARAMS_NAMED);
+		$sql_param = array_merge($sql_param, $sql_param2);
+
+		$sql = "SELECT COUNT(DISTINCT(info))
+		                            FROM {log} l
+		                    	   WHERE l.course $course_sql
+		                    	     AND l.module = 'forum'
+		                    	     AND l.action = 'view discussion'
+		                             AND l.userid = :userid";
+
+		if ($startdate !== null) {
+			$sql_param['startdate'] = $startdate;
+			$sql .= " AND l.time >= :startdate";
+		}
+		if (($enddate !== null) && ($enddate >= $startdate)) {
+			$sql_param['enddate'] = $enddate +DAYSECS;
+			$sql .= " AND l.time < :enddate";
+		}
+
+		return $DB->count_records_sql($sql, $sql_param);
+	}
+
+	/**
+	* Get count of sessions login by user in moodle
+	*
+	* @param integer $userid
+	* @param array $courses
+	* @param integer $startdate - timestamp
+	* @param integer $enddate - timestamp
+	*
+	* @return integer
+	*/
+	private static function get_count_sessions($userid, $courses, $startdate = null, $enddate = null) {
+
+		global $DB;
+
+		$sqlr = array (
+			'userid' => $userid,
+			'course' => $courses,
+			'module' => 'course',
+			'action' => 'view',
+			
+		);
+		$sql_params = array ();
+		$where = '';
+		foreach ($sqlr as $param => $value) {
+			if (empty ($value)) {
+				continue;
+			}
+			list ($where_sql, $sql_param) = $DB->get_in_or_equal($value, SQL_PARAMS_NAMED);
+			$sql_params = array_merge($sql_params, $sql_param);
+			if (!empty ($where)) {
+				$where .= ' AND';
+			}
+			$where .= " {$param} {$where_sql}";
+		}
+
+		if ($startdate !== null) {
+			$sql_params['startdate'] = $startdate;
+			$where .= " AND time >= :startdate";
+		}
+		if (($enddate !== null) && ($enddate >= $startdate)) {
+			$sql_params['enddate'] = $enddate +DAYSECS;
+			$where .= " AND time < :enddate";
+		}
+		return $DB->count_records_select('log', $where, $sql_params);
+	}
+	
+	
+	private static function get_student_roleid() {
+
+		global $DB;
+
+		$sql = "select r.id from 
+		                    {role} r
+		                where 
+		                    r.shortname ='student'";
+		$data = $DB->get_records_sql($sql);
+		
+		$response = array ();
+
+		foreach ($data as $item) {
+			$response = $item->id;
+		}
+		
+		return $response;
+
+	}
+	
+
+	private static function get_courseid_from_idnumber($sectionsourcedIds) {
+
+		global $DB;
+
+		if (strlen($sectionsourcedIds) > 0) {
+			//add quotes to incoming list
+			$SectionIdList = explode(",", $sectionsourcedIds);
+			$firstInList = true;
+			$SectionOutput = "";
+			foreach ($SectionIdList as $id) {
+				if ($firstInList) {
+					$firstInList = false;
+				} else {
+					$SectionOutput .= ",";
+				}
+
+				$SectionOutput .= "'" . clean_param($id, PARAM_TEXT) . "'";
+			}
+		}
+
+		$sql = "select c.id from 
+		                    {course} c
+		                where 
+		                    c.idnumber in ($SectionOutput)";
+		$data = $DB->get_records_sql($sql);
+		$response = array ();
+
+		foreach ($data as $item) {
+			$response[] = $item->id;
+		}
+
+		return $response;
+
+	}
+	
+	/**
+	* Get a user's grades
+	*
+	* @param string $userIds A comma separated list of (external) UserIds
+	* @param string $sectionIds A comma separated list of (external) SectionIds
+	* @param string $startDate Unix timestamp of the date to get logs AFTER
+	* @param string $endDate Unix timestamp of the date to get logs BEFORE
+	* @return array of objects
+	*/
+	public function get_user_grades($userIds = NULL, $sectionIds = NULL, $startDate = NULL, $endDate = NULL, $RecursiveLevel = 0) {
+		global $DB;
+
+		if ($RecursiveLevel > 3) {
+			throw new Exception("RecursiveLevel Too High: " . $RecursiveLevel . " Section Ids:" . var_export($sectionIds, true));
+		}
+		//TODO: Rename columns to confirm to ESS objects
+		//TODO: Should we ignore grades if they have hidden = true;
+
+		//Note: A unique ID must always be the first column in the result.  Otherwise $DV->get_records_sql 
+		//      will group up the results by whatever the first column is.
+		$sql = "select 
+		                    {grade_grades}.id as GradeId, 
+		                    {grade_grades}.finalgrade, 
+		                    {grade_grades}.hidden,
+		                    {grade_items}.id as AssessmentId, 
+		                    {user}.idnumber as UserId,
+		                    {course}.idnumber as SourceId,
+		                    {course}.id as CourseId,
+		                    {grade_items}.needsupdate as NeedsUpdate
+		                from 
+		                    {grade_grades},
+		                    {user},
+		                    {course},
+		                    {grade_items}
+		                where 
+		                    {user}.id   = {grade_grades}.userid and
+		                    {course}.id = {grade_items}.courseid and
+		                    {grade_items}.id = {grade_grades}.itemid and ({grade_items}.itemtype = 'mod' OR {grade_items}.itemtype = 'manual' or {grade_items}.itemtype='course')";
+
+		// Start to add additional conditions to the query
+		$addAnd = " and ";
+		$params = array ();
+
+		// Add Userids to the query
+		if (strlen($userIds) > 0) {
+			//add quotes to incoming list
+			$UserIDList = explode(",", $userIds);
+			$firstInList = true;
+			$UserOutput = "";
+			foreach ($UserIDList as $id) {
+				if ($firstInList) {
+					$firstInList = false;
+				} else {
+					$UserOutput .= ",";
+				}
+
+				$UserOutput .= "'" . clean_param($id, PARAM_TEXT) . "'";
+			}
+
+			$sql .= $addAnd . " {user}.idnumber in ( $UserOutput ) ";
+		}
+
+		// Add sectionIds to the query
+		if (strlen($sectionIds) > 0) {
+			//add quotes to incoming list
+			$SectionIdList = explode(",", $sectionIds);
+			$firstInList = true;
+			$SectionOutput = "";
+			foreach ($SectionIdList as $id) {
+				if ($firstInList) {
+					$firstInList = false;
+				} else {
+					$SectionOutput .= ",";
+				}
+
+				$SectionOutput .= "'" . clean_param($id, PARAM_TEXT) . "'";
+			}
+
+			$sql .= $addAnd . " {course}.idnumber in ( $SectionOutput ) ";
+		}
+
+		//Add the start date to the query
+		if ($startDate != null) {
+			$sql .= $addAnd . " {grade_grades}.timemodified > ? ";
+			$params[] = $startDate;
+		}
+
+		//Add the end date to the query
+		if ($endDate != null) {
+			$sql .= $addAnd . " {grade_grades}.timemodified < ?  ";
+			$params[] = $endDate;
+		}
+
+		//TODO: how to format this error
+		if (count($params) < 1) {
+			throw new Exception("Error, atleast one parameter is required");
+		}
+
+		$data = $DB->get_records_sql($sql, $params);
+		$returnData = array ();
+		$updateData = array ();
+
+		foreach ($data as $value) {
+			$value = (array) $value;
+
+			if ($value["needsupdate"] == 1) {
+				//Keep a list of sectionIds to re-run after they are updated
+				$updateData[] = $value["sourceid"];
+				//Re-run the courseId
+				grade_regrade_final_grades($value["courseid"]);
+			} else {
+				$returnData[] = $value;
+			}
+		}
+		if (count($updateData) > 0) {
+			$sectionIds = implode(",", $updateData);
+			$newData = blocks_intelligent_learning_model_service_user :: get_user_grades($userIds, $sectionIds, $startDate, $endDate, $RecursiveLevel++);
+			$returnData = array_merge($newData, $returnData);
+		}
+
+		$response = array ();
+		foreach ($returnData as $grade) {
+			$dataresponse = array (
+				'grade' => array (
+					'gradeid' => $grade['gradeid'],
+					'finalgrade' => $grade['finalgrade'],
+					'assessmentid' => $grade['assessmentid'],
+					'userid' => $grade['userid'],
+					'sourceid' => $grade['sourceid'],
+					'needsupdate' => $grade['needsupdate']
+				)
+			);
+			$response[] = $dataresponse;
+
+		}
+		//die(var_export($dataresponse, true));
+		return $this->response->standard($response);
+
+	}
+
+	/**
+	* Get a user's activity logs
+	*
+	* @param string $userIds A comma separated list of (external) UserIds
+	* @param string $sectionIds A comma separated list of (external) SectionIds
+	* @param string $startDate Unix timestamp of the date to get logs AFTER
+	* @param string $endDate Unix timestamp of the date to get logs BEFORE
+	* @return array of objects
+	*/
+
+	public function get_user_activity_logs($userIds = NULL, $sectionIds = NULL, $startDate = NULL, $endDate = NULL) {
+		global $DB;
+
+		//TODO: Rename columns to confirm to ESS objects
+
+		//Note: A unique ID must always be the first column in the result.  Otherwise $DV->get_records_sql 
+		//      will group up the results by whatever the first column is.
+		$sql = "select 
+		                    {log}.id,
+		                    {log}.course, 
+		                    {log}.userid,
+		                    {log}.time, 
+		                    {user}.idnumber as UserID, 
+		                    {log}.module, 
+		                    {course}.idnumber as CourseID, 
+		                    {log}.action
+		
+		                    from 
+		                    {log},
+		                    {user},
+		                    {course}
+		
+		                    where
+		                    {user}.id = {log}.userid and
+		                    {log}.course = {course}.id ";
+
+		// Start to add additional conditions to the query
+		$addAnd = " and ";
+		$params = array ();
+
+		// Add Userids to the query
+		if (strlen($userIds) > 0) {
+			//add quotes to incoming list
+			$UserIDList = explode(",", $userIds);
+			$firstInList = true;
+			$UserOutput = "";
+			foreach ($UserIDList as $id) {
+				if ($firstInList) {
+					$firstInList = false;
+				} else {
+					$UserOutput .= ",";
+				}
+
+				$UserOutput .= "'" . clean_param($id, PARAM_TEXT) . "'";
+			}
+
+			$sql .= $addAnd . " {user}.idnumber in ( $UserOutput ) ";
+		}
+
+		// Add sectionIds to the query
+		if (strlen($sectionIds) > 0) {
+			//add quotes to incoming list
+			$SectionIdList = explode(",", $sectionIds);
+			$firstInList = true;
+			$SectionOutput = "";
+			foreach ($SectionIdList as $id) {
+				if ($firstInList) {
+					$firstInList = false;
+				} else {
+					$SectionOutput .= ",";
+				}
+
+				$SectionOutput .= "'" . clean_param($id, PARAM_TEXT) . "'";
+			}
+
+			$sql .= $addAnd . " {course}.idnumber in ( $SectionOutput ) ";
+		}
+
+		//Add the start date to the query
+		if ($startDate != null) {
+			$sql .= $addAnd . " {log}.time > ? ";
+			$params[] = $startDate;
+		}
+
+		//Add the end date to the query
+		if ($endDate != null) {
+			$sql .= $addAnd . " {log}.time < ?  ";
+			$params[] = $endDate;
+		}
+
+		//TODO: how to format this error
+		if (count($params) < 1) {
+			throw new Exception("Error, atleast one parameter is required");
+		}
+
+		$data = $DB->get_records_sql($sql, $params);
+
+		$activityresponse = array ();
+		foreach ($data as $item) {
+			$dataresponse = array (
+				'activity' => array (
+					'id' => $item->id,
+					'course' => $item->course,
+					'userid' => $item->userid,
+					'time' => $item->time,
+					'module' => $item->module,
+					'courseid' => $item->courseid,
+					'action' => $item->action
+				)
+			);
+			$activityresponse[] = $dataresponse;
+
+		}
+		//die(var_export($activityresponse, true));
+		return $this->response->standard($activityresponse);
+
+	}
+
+	/**
+	* Get a user's activity logs
+	*
+	* @param string $sectionIds A comma separated list of (external) SectionIds
+	* @param string $startDate Unix timestamp of the date to get logs AFTER
+	* @param string $endDate Unix timestamp of the date to get logs BEFORE
+	* @return array of objects
+	*/
+	public function get_grade_items($sectionIds = NULL, $startDate = NULL, $endDate = NULL) {
+
+		//TODO: Rename columns to confirm to ESS objects
+		//Note: A unique ID must always be the first column in the result.  Otherwise $DV->get_records_sql 
+		//      will group up the results by whatever the first column is.
+		global $DB;
+		$sql = "select 
+		                    {grade_items}.id,
+		                    {grade_items}.categoryid, 
+		                    {grade_items}.itemname, 
+		                    {grade_items}.itemtype, 
+		                    {grade_items}.itemmodule, 
+		                    {grade_items}.itemnumber, 
+		                    {grade_items}.grademax,
+		                    {course}.idnumber as SectionId
+		                from 
+		                    {grade_items}, 
+		                    {course} 
+		                where 
+		                    {course}.id = courseid and ({grade_items}.itemtype = 'mod' OR {grade_items}.itemtype = 'manual' or {grade_items}.itemtype='course')";
+
+		//Add the additional criteria to the query
+
+		$addAnd = " and ";
+		$params = array ();
+		//die(var_export($sectionIds,true));
+		// Add sectionIds to the query
+		if (strlen($sectionIds) > 0) {
+			//add quotes to incoming list
+			$SectionIdList = explode(",", $sectionIds);
+			$firstInList = true;
+			$SectionOutput = "";
+			foreach ($SectionIdList as $id) {
+				if ($firstInList) {
+					$firstInList = false;
+				} else {
+					$SectionOutput .= ",";
+				}
+
+				$SectionOutput .= "'" . clean_param($id, PARAM_TEXT) . "'";
+			}
+
+			$sql .= $addAnd . " {course}.idnumber in ( $SectionOutput ) ";
+		}
+
+		//Add the start date to the query
+		if ($startDate != null) {
+			$sql .= $addAnd . " {grade_items}.timemodified > ? ";
+			$params[] = $startDate;
+		}
+		//Add the end date to the query
+		if ($endDate != null) {
+			$sql .= $addAnd . " {grade_items}.timemodified < ? ";
+			$params[] = $endDate;
+		}
+
+		//TODO: how to format this error
+		if (count($params) < 1) {
+			throw new Exception("Error, atleast one parameter is required");
+		}
+
+		$data = $DB->get_records_sql($sql, $params);
+
+		$response = array ();
+		foreach ($data as $item) {
+			$dataresponse = array (
+				'item' => array (
+					'id' => $item->id,
+					'categoryid' => $item->categoryid,
+					'itemtype' => $item->itemtype,
+					'itemname' => $item->itemname,
+					'grademax' => $item->grademax,
+					'sectionid' => $item->sectionid,
+					'itemmodule' => $item->itemmodule
+				)
+			);
+			$response[] = $dataresponse;
+		}
+
+		return $this->response->standard($response);
+	}
+	
+	
+	//////////////////////////////NEW ILP API Ends Here/////////////////////////////////////////////////////////////////////
+	
+	
+	
+	
+	
 }
