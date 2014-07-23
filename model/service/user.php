@@ -485,7 +485,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
 	
 
   /**
-	* Test function 
+	* Test function to test connectivity from ILP
 	* 
 	* @return array
 	*/
@@ -502,7 +502,6 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
      * Get courses where user is enrolled with these roles.
      *
      * @param integer $userid
-     * @param array $roles_enrolled
      * @paramt integer $startdate - Is used to filter by startdate course (date in timestamp)
      * @return array
      */
@@ -512,13 +511,13 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
         $field_courseid = 'idnumber';
         $result = array();
 		$roles_enrolled = self::get_student_roleid();
-		//die(var_export($roles_enrolled , true));
+		
         
         $sql_param['userid'] = $userid;
         $sql_param['contextcourse'] = CONTEXT_COURSE;
        	list($usql, $sql_param_in) = $DB->get_in_or_equal($roles_enrolled, SQL_PARAMS_NAMED);
         $sql_param = array_merge($sql_param,$sql_param_in);
-		//die(var_export($sql_param , true));
+		
         $sql = "SELECT c.id , c.{$field_courseid}
         		  FROM {course} c
         		  JOIN {context} ctx ON c.id = ctx.instanceid
@@ -527,12 +526,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
                  WHERE u.idnumber = :userid
                    AND ctx.contextlevel = :contextcourse
                    AND ra.roleid $usql";
-		//die($usql);
-        if(!empty($field_courseid) && !empty($term)){
-            //get course field name seted in config block
-            //$sql_param['term'] = $DB->sql_like_escape($term.'_', '|').'%';
-            //$sql .= ' AND '.$DB->sql_like('c.'.$field_courseid, ':term', false, true, false, '|');
-        }
+		
         $istartdate = (int)$startdate;
         if($istartdate > 0) {
             $sql_param['startdate'] = $startdate;
@@ -556,7 +550,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
 	public function get_user_activities($studentIds, $startDate = null, $endDate = null) {
 
 		global $DB;
-		//$courses = self :: get_courses_where_user_is_enrolled($sectionIds);
+		
 		//die(var_export($courses, false));
 		$results = array ();
 		$userids = array ();
@@ -565,8 +559,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
 			//add quotes to incoming list
 			$userids = explode(",", $studentIds);
 		}
-
-		// die(var_export($userids , true));
+	
 
 		foreach ($userids as $userid) {
 			$sections = self :: get_courses_where_user_is_enrolled($userid , $startDate);
@@ -628,7 +621,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
 	}
 
 	/**
-	 *
+	 * Get Total number of calendar entries added
 	 * @param int   $userid
 	 * @param int[] $courses
 	 * @param int   $startdate
@@ -993,6 +986,13 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
 
 	}
 	
+	/**
+	* Get teh moodle id for a given set of course id numbers
+	*
+	* @param $sectionsourcedIds section id number
+	*
+	* @return integer
+	*/
 
 	private static function get_courseid_from_idnumber($sectionsourcedIds) {
 
@@ -1044,7 +1044,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
 		if ($RecursiveLevel > 3) {
 			throw new Exception("RecursiveLevel Too High: " . $RecursiveLevel . " Section Ids:" . var_export($sectionIds, true));
 		}
-		//TODO: Rename columns to confirm to ESS objects
+		
 		//TODO: Should we ignore grades if they have hidden = true;
 
 		//Note: A unique ID must always be the first column in the result.  Otherwise $DV->get_records_sql 
@@ -1182,8 +1182,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
 	public function get_user_activity_logs($userIds = NULL, $sectionIds = NULL, $startDate = NULL, $endDate = NULL) {
 		global $DB;
 
-		//TODO: Rename columns to confirm to ESS objects
-
+		
 		//Note: A unique ID must always be the first column in the result.  Otherwise $DV->get_records_sql 
 		//      will group up the results by whatever the first column is.
 		$sql = "select 
@@ -1297,7 +1296,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
 	*/
 	public function get_grade_items($sectionIds = NULL, $startDate = NULL, $endDate = NULL) {
 
-		//TODO: Rename columns to confirm to ESS objects
+		
 		//Note: A unique ID must always be the first column in the result.  Otherwise $DV->get_records_sql 
 		//      will group up the results by whatever the first column is.
 		global $DB;
