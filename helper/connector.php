@@ -50,6 +50,27 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
         }
         return current($records);
     }
+    
+    
+    /**
+     *
+     * @param string - $idnumber The user's idnumber
+     * @return object - user record
+     */
+    public function get_user_byid($idnumber) {
+        global $DB;
+        
+        $idnumber = clean_param($idnumber, PARAM_TEXT);
+
+        if (!$records = $DB->get_records('user', array('idnumber' => $idnumber))) {
+            throw new Exception("Failed to lookup username = $idnumber in table user");
+        }
+        if (count($records) > 1) {
+            throw new Exception("Found duplicate records where username = $idnumber in table user");
+        }
+        return current($records);
+    }
+    
 
     /**
      * Get a user's courses
@@ -86,6 +107,33 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
             throw new Exception("Invalid course idnumber passed: $idnumber");
         }
         return $courses;
+    }
+    
+    
+    /**
+     * Get courses where user is enrolled with these roles.
+     *
+     * @param integer $userid
+     * @paramt integer $startdate - Is used to filter by startdate course (date in timestamp)
+     * @return array
+     */
+    public function get_courses_where_user_is_enrolled($userid, $startdate = null){
+
+        global $DB;
+        $result = array();
+        
+        $startdate = clean_param($startdate, PARAM_INT);
+        
+        $user      = $this->get_user_byid($userid);
+        $courses   = $this->get_courses($user, "");
+        
+        foreach ($courses as $course) {
+            if($course->startdate <= $startdate){
+                $result[] = $course;
+            }
+        }
+        return $result;
+
     }
 
     /**
