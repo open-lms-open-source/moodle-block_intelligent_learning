@@ -1,4 +1,18 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 /**
  * ILP Integration
  *
@@ -30,6 +44,7 @@
 
 require_once($CFG->libdir.'/gradelib.php');
 require_once($CFG->dirroot.'/grade/querylib.php');
+require_once("$CFG->dirroot/blocks/intelligent_learning/helper/ilpsislib.php");
 class block_intelligent_learning_model_gradematrix {
 
     /**
@@ -40,13 +55,13 @@ class block_intelligent_learning_model_gradematrix {
 
     /**
      *
-     * @var int 
+     * @var int
      */
     private $courseid;
 
     /**
      *
-     * @var array 
+     * @var array
      */
     private $usergrades = array();
 
@@ -65,37 +80,37 @@ class block_intelligent_learning_model_gradematrix {
     private $order = 'ASC';
 
     /**
-     * 
+     *
      *
      * @param int $courseid The id of the course the matrix is used in
-     * 
+     *
      */
     private function __construct($courseid, $load_coursegrade = true) {
         global $SESSION;
 
         $this->courseid = $courseid;
 
-        // Sorting of user grades
+        // Sorting of user grades.
         if (empty($SESSION->block_intelligent_learning_sorting)) {
             $SESSION->block_intelligent_learning_sorting = (object) array(
                 'sort' => $this->sort,
                 'order' => $this->order,
             );
         }
-        // Update from user requests
+        // Update from user requests.
         $SESSION->block_intelligent_learning_sorting->sort  = optional_param('sort', $SESSION->block_intelligent_learning_sorting->sort, PARAM_SAFEDIR);
         $SESSION->block_intelligent_learning_sorting->order = optional_param('order', $SESSION->block_intelligent_learning_sorting->order, PARAM_SAFEDIR);
 
-        // Store locally
+        // Store locally.
         $this->sort  = $SESSION->block_intelligent_learning_sorting->sort;
         $this->order = $SESSION->block_intelligent_learning_sorting->order;
 
-        // Be sure it is firstname/lastname
+        // Be sure it is firstname/lastname.
         if ($this->sort != 'firstname' and $this->sort != 'lastname') {
             $this->sort = 'lastname';
         }
 
-        // Be sure it is ASC/DESC
+        // Be sure it is ASC/DESC.
         if ($this->order != 'ASC' and $this->order != 'DESC') {
             $this->order = 'ASC';
         }
@@ -123,7 +138,7 @@ class block_intelligent_learning_model_gradematrix {
      * Return the usergrades array - contains the midterm grades, final grades,
      * expiredate, lastaccess, and neverattended values
      *
-     * @return array 
+     * @return array
      */
     public function get_usergrades() {
         return $this->usergrades;
@@ -203,18 +218,18 @@ class block_intelligent_learning_model_gradematrix {
     public static function save_grades($usergrades) {
         global $COURSE, $USER, $DB;
 
-        //flag to return specifying whether any records were actually saved
+        // Flag to return specifying whether any records were actually saved.
         $saved = false;
 
-        // Get current grades to detect changes
+        // Get current grades to detect changes.
         $currentgrades = self::singleton($COURSE->id, false)->get_usergrades();
         $mr_db_records = array();
 
-        //create new mr_db_records for each current user grade
+        // Create new mr_db_records for each current user grade.
         foreach ($currentgrades as $userid => $currentgrade) {
             $mr_db_records[$userid] = new mr_db_record('block_intelligent_learning', $currentgrade);
         }
-        
+
         $currenttime   = time();
         $gradelock     = get_config('blocks/intelligent_learning', 'gradelock');
         $couldnotsave  = array();
@@ -229,13 +244,13 @@ class block_intelligent_learning_model_gradematrix {
                 }
             }
 
-            $fields = array('mt1', 'mt2', 'mt3', 'mt4', 'mt5', 'mt6', 'finalgrade', 'expiredate', 'lastaccess', 'neverattended');
+            $fields = array('mt1', 'mt2', 'mt3', 'mt4', 'mt5', 'mt6', 'finalgrade', 'expiredate', 'lastaccess', 'neverattended', 'incompletefinalgrade');
 
-            // Manage last edit user ID and time
+            // Manage last edit user ID and time.
             foreach ($fields as $field) {
                 if (property_exists($usergrade, $field)) {
                     if (empty($currentgrades[$usergrade->userid]) or $currentgrades[$usergrade->userid]->$field != $usergrade->$field) {
-                        // Flag as changed
+                        // Flag as changed.
                         $fielduserid                   = "{$field}userid";
                         $fieldtimemodified             = "{$field}timemodified";
                         $usergrade->$fielduserid       = $USER->id;
@@ -264,12 +279,15 @@ class block_intelligent_learning_model_gradematrix {
     private function load_usergrades() {
         global $CFG, $DB;
 
-        //query parameters
+        // Query parameters.
         $params = array();
 
         if (!$course = $DB->get_record('course', array('id' => $this->courseid))) {
             throw new coding_exception("Invalid course ID set: $this->courseid");
         }
+
+        $groupjoin = $groupwhere = $metawhere = '';
+       
         if ($groupid = groups_get_course_group($course, true)) {
             $groupjoin  = " LEFT JOIN {groups_members} gm ON u.id = gm.userid";
             $groupwhere = " AND gm.groupid = :groupid ";
@@ -278,6 +296,14 @@ class block_intelligent_learning_model_gradematrix {
         } else {
             $groupjoin = $groupwhere = '';
         }
+        
+        $metaid = optional_param('meta', 0, PARAM_INT);
+
+        if ($metaid != 0) {
+        	$metawhere = " AND ra.itemid = :metaid AND ra.component = 'enrol_meta'";
+        	$params['metaid'] = $metaid;
+        }
+        
         $sortorder = $this->get_sort_order('u');
 
         $context = context_course::instance($this->courseid);
@@ -287,16 +313,16 @@ class block_intelligent_learning_model_gradematrix {
             $contextstr = ' ='.$context->id;
         }
 
-        $sql = "SELECT DISTINCT u.id as uid, u.firstname, u.lastname, u.idnumber, il.id, il.course, il.userid, il.mt1, il.mt2, il.mt3, il.mt4, il.mt5, il.mt6, il.finalgrade, il.expiredate, il.lastaccess, il.neverattended
+        $sql = "SELECT DISTINCT u.id as uid, u.firstname, u.lastname, u.idnumber, il.id, il.course, il.userid, il.mt1, il.mt2, il.mt3, il.mt4, il.mt5, il.mt6, il.finalgrade, il.expiredate, il.lastaccess, il.neverattended, il.incompletefinalgrade
                   FROM {user} u
                   JOIN {role_assignments} ra ON u.id = ra.userid
              LEFT JOIN {block_intelligent_learning} il ON u.id = il.userid AND il.course = :courseid
                        $groupjoin
-                 WHERE ra.roleid in ($CFG->gradebookroles)$groupwhere
+                 WHERE ra.roleid in ($CFG->gradebookroles)$groupwhere $metawhere
                    AND ra.contextid $contextstr " .
             " ORDER BY $sortorder";
-
-        $params['courseid'] = $this->courseid;
+        
+        $params['courseid'] = $this->courseid;        
 
         if ($users = $DB->get_records_sql($sql, $params)) {
             $this->usergrades = $users;
@@ -324,5 +350,95 @@ class block_intelligent_learning_model_gradematrix {
                 $this->usergrades[$uid]->currentgrade->letter = $currentgrade_letter;
             }
         }
+    }
+
+    /**
+     * 
+     * Parse submitted grades and only send to the SIS anything that's changed
+     * @param string $courseid - id of the course
+     * @param array $usergrades - array of grades in the form
+     */
+    public static function get_grades_to_send_to_sis($courseid, $usergrades) {
+
+        GLOBAL $COURSE;
+
+        // Get current grades to detect changes.
+        $currentgrades = self::singleton($courseid, false)->get_usergrades();
+
+        $ilp_sis_records = array();
+        $gradelock     = get_config('blocks/intelligent_learning', 'gradelock');
+        $neverattended = get_config('blocks/intelligent_learning', 'showlastattendance');
+
+        foreach ($usergrades as $usergrade) {
+
+            if ($gradelock) {
+                if (!empty($currentgrades[$usergrade->userid]) and !empty($currentgrades[$usergrade->userid]->finalgrade)) {
+                    unset($usergrade->finalgrade);
+                }
+                if (empty($usergrade)) {
+                    continue;
+                }
+            }
+
+            $fields = array('mt1', 'mt2', 'mt3', 'mt4', 'mt5', 'mt6', 'finalgrade', 'expiredate', 'lastaccess', 'neverattended', 'incompletefinalgrade');
+            $stringfields = array('mt1', 'mt2', 'mt3', 'mt4', 'mt5', 'mt6', 'finalgrade', 'incompletefinalgrade');
+
+            $sisgrade = ilpsislib::sisgrade($COURSE, $usergrade);
+            $sisgrade->requiressisupdate    = false;
+
+            foreach ($fields as $field) {
+                if (property_exists($usergrade, $field)) {
+                    if ((empty($currentgrades[$usergrade->userid]->$field)) and (!empty($usergrade->$field))) {
+                         
+                    	 // Add this record to the list of data to be sent to the SIS; this is a new value.
+                         $sisgrade->$field              = $usergrade->$field;
+                         $sisgrade->requiressisupdate   = true;
+                    } else if ($currentgrades[$usergrade->userid]->$field != $usergrade->$field) {
+                        if (($field == 'neverattended') and (empty($neverattended))) {
+                        	continue;
+                        }
+                        /*
+                         * Add this record to the list of data to be sent to the SIS,
+                         * but check first if the grade went from having a value to being blank as this
+                         * has special handling in the grades API.
+                         */
+                        if (empty($usergrade->$field) and (in_array($field, $stringfields))) {
+                            $sisgrade->$field = "";
+                        } else {
+                            $sisgrade->$field           = $usergrade->$field;
+                        }
+                        // If this is the incompletegrade or expiration date, include the final grade as well.
+                        if (($field == 'incompletefinalgrade') || ($field == 'expiredate')) {
+                            $sisgrade->finalgrade = $usergrade->finalgrade;
+                        }
+                        // If this is a final grade and the incomplete grade is not empty, send it as well.
+                        if (($field == 'finalgrade') && (!empty($usergrade->incompletefinalgrade))) {
+                            $sisgrade->incompletefinalgrade = $usergrade->incompletefinalgrade;
+                        }
+                        // If this is a final grade and the expiration date is not empty, send it as well.
+                        if (($field == 'finalgrade') && (!empty($usergrade->expiredate))) {
+                            $sisgrade->expiredate = $usergrade->expiredate;
+                        }
+
+                        if ($field == 'neverattended') {
+                            // Set the flag to indicate this field has changed since true/false may not indicate an update.
+                            $sisgrade->updateneverattended = true;
+                        }
+                        $sisgrade->requiressisupdate    = true;
+                    }
+                }
+            }
+
+            if ($sisgrade->requiressisupdate) {                              
+                // Make sure we're sending to SIS the course id number associated with the user's enrollment,
+                // which does not necessarily match with the current course for meta-link enrollments.
+                $sisgrade->cidnumber = ilpsislib::get_enrol_course_idnumber($COURSE->id, $sisgrade);
+                array_push($ilp_sis_records, $sisgrade);
+            }
+        }
+
+        // debugging("Grades to upgrade after matrix out existing grades is: " . print_r($ilp_sis_records, true), DEBUG_NORMAL);
+
+        return $ilp_sis_records;
     }
 }

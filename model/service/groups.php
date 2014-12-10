@@ -1,4 +1,18 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 /**
  * ILP Integration
  *
@@ -56,7 +70,7 @@ class blocks_intelligent_learning_model_service_groups extends blocks_intelligen
         'delete',
         'drop',
     );
-    
+
     /**
      * Get groups in a course
      *
@@ -92,7 +106,7 @@ class blocks_intelligent_learning_model_service_groups extends blocks_intelligen
 
         list($action, $data) = $this->helper->xmlreader->validate_xml($xml, $this);
 
-        // todo Have data come back as an object?
+        // TODO: Have data come back as an object?
         $data = (object) $data;
 
         if (!$course = $DB->get_record('course', array('idnumber' => $data->course))) {
@@ -110,7 +124,7 @@ class blocks_intelligent_learning_model_service_groups extends blocks_intelligen
             case 'create':
             case 'add':
             case 'update':
-                // Apply rename
+                // Apply rename.
                 if (!empty($data->newname)) {
                     $data->name = $data->newname;
                 }

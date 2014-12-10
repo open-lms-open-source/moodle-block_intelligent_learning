@@ -39,7 +39,7 @@ td.block-ilp-td {
 }
 
 .block-ilp-error {
-  background-color: #FF6666;
+  background-color: #FF6666 !important;
 }
 
 .block-ilp-submitbutton {

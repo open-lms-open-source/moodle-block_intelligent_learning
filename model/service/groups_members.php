@@ -1,4 +1,18 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 /**
  * ILP Integration
  *
@@ -35,11 +49,13 @@ class blocks_intelligent_learning_model_service_groups_members extends blocks_in
         'course',
         'user',
         'groupname',
+        'idnumber'
     );
 
     protected $mapoptions = array(
         'course'     => array('required' => 1, 'type' => PARAM_TEXT),
-        'user'       => array('required' => 1, 'type' => PARAM_TEXT),
+        'user'       => array('required' => 0, 'type' => PARAM_TEXT),
+        'idnumber'   => array('required' => 0, 'type' => PARAM_TEXT),
         'groupname'  => array('required' => 1, 'type' => PARAM_TEXT),
     );
 
@@ -63,14 +79,24 @@ class blocks_intelligent_learning_model_service_groups_members extends blocks_in
 
         list($action, $data) = $this->helper->xmlreader->validate_xml($xml, $this);
 
-        // todo Have data come back as an object?
+        // TODO: Have data come back as an object?
         $data = (object) $data;
 
         if (!$course = $DB->get_record('course', array('idnumber' => $data->course))) {
             throw new Exception("Passed course doesn't exist: $data->course");
         }
-        if (!$user = $DB->get_record('user', array('username' => $data->user))) {
-            throw new Exception("Passed user doesn't exist: $data->user");
+
+        if (empty($data->user) && empty($data->idnumber)) {
+            throw new Exception('Either username or idnumber is required');
+        }
+        if (!empty($data->idnumber)) {
+            if (!$user = $DB->get_record('user', array('idnumber' => $data->idnumber))) {
+                throw new Exception("Passed user idnumber doesn't exist: $data->idnumber");
+            }
+        } else {
+            if (!$user = $DB->get_record('user', array('username' => $data->user))) {
+                throw new Exception("Passed username doesn't exist: $data->user");
+            }
         }
         if (!$group = $DB->get_record('groups', array('name' => $data->groupname, 'courseid' => $course->id))) {
             throw new Exception("Passed group doesn't exist: group name = $data->groupname, course idnumber = $course->idnumber");

@@ -1,4 +1,18 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 /**
  * ILP Integration
  *
@@ -59,11 +73,11 @@ class blocks_intelligent_learning_model_response extends mr_server_response_abst
     public function fault($message) {
         $dom = $this->new_dom();
 
-        // Update the status tag
+        // Update the status tag.
         $status = $dom->getElementsByTagName('status')->item(0);
         $status->appendChild($dom->createTextNode(0));
 
-        // Update the message tag
+        // Update the message tag.
         $msg = $dom->getElementsByTagName('message')->item(0);
         $msg->appendChild($dom->createTextNode($message));
 
@@ -80,7 +94,7 @@ class blocks_intelligent_learning_model_response extends mr_server_response_abst
      * @return void
      */
     public function send_headers($server) {
-        //We still need to send the content-type header if not sent
+        // We still need to send the content-type header if not sent.
         $contentheader = 'Content-Type: text/xml';
 
         if (!headers_sent()) {
@@ -96,7 +110,7 @@ class blocks_intelligent_learning_model_response extends mr_server_response_abst
      * Map any Zend responses to ours (EG: Zend server faults)
      */
     public function post_handle($response) {
-        // Try to capture Zend faults and map them to our custom faults
+        // Try to capture Zend faults and map them to our custom faults.
         $xml = simplexml_load_string($response);
         if ($xml->getName() != 'response') {
             $message = @$xml->xpath('//message');
@@ -117,10 +131,10 @@ class blocks_intelligent_learning_model_response extends mr_server_response_abst
     /**
      * Conform the standard response to Datatel's
      */
-    public function standard($response = NULL, $status = true) {
+    public function standard($response = null, $status = true) {
         $dom = $this->new_dom();
 
-        // Update the status tag
+        // Update the status tag.
         $statustag = $dom->getElementsByTagName('status')->item(0);
 
         if ($status) {
@@ -176,7 +190,7 @@ class blocks_intelligent_learning_model_response extends mr_server_response_abst
                         'timestamp'       => $activity->timestamp,
                         'description'     => $activity->description_text,
                         'url'             => "$CFG->wwwroot/mod/$activity->type/view.php?id=$activity->cmid",
-                        'numberofupdates' => isset($activity->numberofupdates) ? $activity->numberofupdates : NULL,
+                        'numberofupdates' => isset($activity->numberofupdates) ? $activity->numberofupdates : null,
                         'accessible'      => $activity->accessible,
                     ));
                 }
@@ -268,7 +282,7 @@ class blocks_intelligent_learning_model_response extends mr_server_response_abst
                         'name'        => format_string($event->name),
                         'timestart'   => $event->timestart,
                         'timeend'     => ($event->timestart + $event->timeduration),
-                        'description' => trim(html_to_text(format_text($event->description, $event->format, NULL, $course->id), 0)),
+                        'description' => trim(html_to_text(format_text($event->description, $event->format, null, $course->id), 0)),
                         'url'         => $calurl->out(false)."#event_$event->id",
                     ));
                 }
@@ -278,9 +292,9 @@ class blocks_intelligent_learning_model_response extends mr_server_response_abst
         return $response;
     }
 
-/**
- * START - below here are all web service response callbacks
- */
+    /**
+     * START - below here are all web service response callbacks
+     */
 
     /**
      * Service: course
@@ -307,7 +321,7 @@ class blocks_intelligent_learning_model_response extends mr_server_response_abst
         return $this->standard(array('enrollment' => array(
             'course' => format_string($enrol->course),
             'user' => format_string($enrol->user),
-            'role' => format_string($enrol->role),
+            'role' => format_string($enrol->role)
         )));
     }
 
@@ -472,6 +486,9 @@ class blocks_intelligent_learning_model_response extends mr_server_response_abst
                 'neverattended' => $grade->neverattended,
                 'modifiedtimeneverattended' => $grade->neverattendedtimemodified,
                 'lastsubmittedbyneverattended' => $grade->neverattendedusername,
+                'incompletefinalgrade' => $grade->incompletefinalgrade,
+                'modifiedtimeincompletefinalgrade' => $grade->incompletefinalgradetimemodified,
+                'lastsubmittedbyincompletefinalgrade' => $grade->incompletefinalgradeusername,
             );
         }
         return $this->standard($response);
