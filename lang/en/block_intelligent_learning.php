@@ -147,7 +147,7 @@ $string['showlastattendancedesc'] = 'Display Last Date of Attendance links?';
 $string['showneverattended'] = 'Show Never Attended column in grading forms';
 $string['showneverattendeddesc'] = 'Display Never Attended column in grading forms? (Note: this setting applies to ' .
     'Colleague clients only. Banner clients should set this value to No.) Note that you can separately specify whether the Last Date of Attendance '.
-    'Attendance column is displayed using the "Show last attendance" setting.';
+    'column is displayed using the "Show last attendance" setting.';
 $string['showdefaultincomplete'] = "Show Incomplete Final Grade column in grading forms?";
 $string['showdefaultincompletedesc'] = "Show a column for Incomplete Final Grade that can be used by faculty members when entering an incomplete grade? (Note: This setting applies to Banner clients only.)";
 $string['stgradebookpid'] = 'ST Gradebook process ID';

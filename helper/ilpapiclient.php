@@ -201,7 +201,7 @@ class ilpapiclient {
                             case 'MidTermGrade':
                                 $error->property = 'mt1';
                                 break;
-                        	case 'MidtermGrade1':
+                            case 'MidtermGrade1':
                                 $error->property = 'mt1';
                                 break;
                             case 'MidtermGrade2':
@@ -250,7 +250,7 @@ class ilpapiclient {
      */
     public static function build_grades_request_payload($facultyid, $sisgrades) {
         /*
-         {         
+         {
          "ModifiedBy":"0029382",
          "StudentGrades": [
              {
@@ -276,13 +276,13 @@ class ilpapiclient {
              }]}
          */
 
-        $json = '{                  
+        $json = '{
                   "ModifiedBy":"' . $facultyid . '"' .
                   ', "StudentGrades": [';
 
         foreach ($sisgrades as $grades) {
             $json .= '{"CourseId":"' . $grades->cidnumber . '"';
-        	$json .= ',"StudentId":"' . $grades->uidnumber . '"';
+            $json .= ',"StudentId":"' . $grades->uidnumber . '"';
 
             // Only send updates for fields that have changed.
             if (!is_null($grades->finalgrade)) {

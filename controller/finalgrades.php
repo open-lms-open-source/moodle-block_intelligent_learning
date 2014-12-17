@@ -164,7 +164,7 @@ class block_intelligent_learning_controller_finalgrades extends block_intelligen
                         $lastaccesskey = "lastaccess_$userid";
 
                         if (!empty($data->$lastaccesskey) and !empty($datum)) {
-                        	$errormsg = $usergrades[$userid]->ufullname . ": " . get_string('neverattenderror', 'block_intelligent_learning');                        	
+                            $errormsg = $usergrades[$userid]->ufullname . ": " . get_string('neverattenderror', 'block_intelligent_learning');
                             $this->notify->add_string($errormsg);
                             $errorelements[$key] = $datum;
                             unset($usergrades[$userid]->neverattended);
@@ -209,7 +209,7 @@ class block_intelligent_learning_controller_finalgrades extends block_intelligen
                 $ilpapi = get_config('blocks/intelligent_learning', 'ilpapi_url');
                 if (!empty($ilpapi)) {
                     $sisgrades = block_intelligent_learning_model_gradematrix::get_grades_to_send_to_sis($courseid, $usergrades);
-                                        
+
                     if (count($sisgrades) > 0) {
                         $sisresults = null;
                         try {
@@ -249,7 +249,7 @@ class block_intelligent_learning_controller_finalgrades extends block_intelligen
                                                 unset($usergrades[$erroruser->id]->incompletefinalgrade);
                                             }
                                             if (!empty($usergrades[$erroruser->id]->expiredate)) {
-                                                $errorelements['expiredate' . '_' . $erroruser->id] = $this->helper->date($usergrades[$erroruser->id]->expiredate);
+                                                $errorelements['expiredate' . '_' . $erroruser->id] = $this->helper->date->format($usergrades[$erroruser->id]->expiredate);
                                                 unset($usergrades[$erroruser->id]->expiredate);
                                             }
                                         }
@@ -269,7 +269,7 @@ class block_intelligent_learning_controller_finalgrades extends block_intelligen
                         }
                     } else {
                         debugging("No changes to send to SIS for course " . $courseid, DEBUG_NORMAL);
-                    }                    
+                    }
                 }
 
                 if (!empty($errorelements)) {
@@ -282,7 +282,7 @@ class block_intelligent_learning_controller_finalgrades extends block_intelligen
                     }
                 }
             } catch (moodle_exception $e) {
-            	debugging("Unable to save grades. " . $e, DEBUG_NORMAL);
+                debugging("Unable to save grades. " . $e, DEBUG_NORMAL);
                 $this->notify->bad('couldnotsave');
             }
         }

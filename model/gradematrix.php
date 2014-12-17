@@ -287,7 +287,7 @@ class block_intelligent_learning_model_gradematrix {
         }
 
         $groupjoin = $groupwhere = $metawhere = '';
-       
+
         if ($groupid = groups_get_course_group($course, true)) {
             $groupjoin  = " LEFT JOIN {groups_members} gm ON u.id = gm.userid";
             $groupwhere = " AND gm.groupid = :groupid ";
@@ -300,10 +300,10 @@ class block_intelligent_learning_model_gradematrix {
         $metaid = optional_param('meta', 0, PARAM_INT);
 
         if ($metaid != 0) {
-        	$metawhere = " AND ra.itemid = :metaid AND ra.component = 'enrol_meta'";
-        	$params['metaid'] = $metaid;
+            $metawhere = " AND ra.itemid = :metaid AND ra.component = 'enrol_meta'";
+            $params['metaid'] = $metaid;
         }
-        
+
         $sortorder = $this->get_sort_order('u');
 
         $context = context_course::instance($this->courseid);
@@ -321,8 +321,8 @@ class block_intelligent_learning_model_gradematrix {
                  WHERE ra.roleid in ($CFG->gradebookroles)$groupwhere $metawhere
                    AND ra.contextid $contextstr " .
             " ORDER BY $sortorder";
-        
-        $params['courseid'] = $this->courseid;        
+
+        $params['courseid'] = $this->courseid;
 
         if ($users = $DB->get_records_sql($sql, $params)) {
             $this->usergrades = $users;
@@ -389,13 +389,13 @@ class block_intelligent_learning_model_gradematrix {
             foreach ($fields as $field) {
                 if (property_exists($usergrade, $field)) {
                     if ((empty($currentgrades[$usergrade->userid]->$field)) and (!empty($usergrade->$field))) {
-                         
-                    	 // Add this record to the list of data to be sent to the SIS; this is a new value.
-                         $sisgrade->$field              = $usergrade->$field;
-                         $sisgrade->requiressisupdate   = true;
+
+                        // Add this record to the list of data to be sent to the SIS; this is a new value.
+                        $sisgrade->$field              = $usergrade->$field;
+                        $sisgrade->requiressisupdate   = true;
                     } else if ($currentgrades[$usergrade->userid]->$field != $usergrade->$field) {
                         if (($field == 'neverattended') and (empty($neverattended))) {
-                        	continue;
+                            continue;
                         }
                         /*
                          * Add this record to the list of data to be sent to the SIS,
@@ -407,29 +407,32 @@ class block_intelligent_learning_model_gradematrix {
                         } else {
                             $sisgrade->$field           = $usergrade->$field;
                         }
-                        // If this is the incompletegrade or expiration date, include the final grade as well.
-                        if (($field == 'incompletefinalgrade') || ($field == 'expiredate')) {
+                        $sisgrade->requiressisupdate    = true;
+                    }
+
+                    if ($sisgrade->requiressisupdate) {
+                        // Check for additional data required for certain fields; incomplete, expire and final
+                        // grades always go together
+
+                        if (($field == 'incompletefinalgrade') || ($field == 'expiredate') || ($field == 'finalgrade')) {
                             $sisgrade->finalgrade = $usergrade->finalgrade;
-                        }
-                        // If this is a final grade and the incomplete grade is not empty, send it as well.
-                        if (($field == 'finalgrade') && (!empty($usergrade->incompletefinalgrade))) {
-                            $sisgrade->incompletefinalgrade = $usergrade->incompletefinalgrade;
-                        }
-                        // If this is a final grade and the expiration date is not empty, send it as well.
-                        if (($field == 'finalgrade') && (!empty($usergrade->expiredate))) {
-                            $sisgrade->expiredate = $usergrade->expiredate;
+                            if (!empty($usergrade->incompletefinalgrade)) {
+                                $sisgrade->incompletefinalgrade = $usergrade->incompletefinalgrade;
+                            }
+                            if (!empty($usergrade->expiredate)) {
+                                $sisgrade->expiredate = $usergrade->expiredate;
+                            }
                         }
 
                         if ($field == 'neverattended') {
                             // Set the flag to indicate this field has changed since true/false may not indicate an update.
                             $sisgrade->updateneverattended = true;
                         }
-                        $sisgrade->requiressisupdate    = true;
                     }
                 }
             }
 
-            if ($sisgrade->requiressisupdate) {                              
+            if ($sisgrade->requiressisupdate) {
                 // Make sure we're sending to SIS the course id number associated with the user's enrollment,
                 // which does not necessarily match with the current course for meta-link enrollments.
                 $sisgrade->cidnumber = ilpsislib::get_enrol_course_idnumber($COURSE->id, $sisgrade);

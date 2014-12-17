@@ -357,13 +357,14 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
                 $parentshortname = "";
                 $parentstartdate = time();
 
-                $ids = explode(',', $children);
+                $childids = explode(',', $children);
                 $enrol      = enrol_get_plugin('meta');
 
                 // Make this a metacourse by adding enrollment entries for each of the child courses.
                 $metacourse = $DB->get_record('course', array('idnumber' => $course->idnumber), '*', MUST_EXIST);
 
-                foreach ($ids as $childidnumber) {
+                $requestchildren = array();
+                foreach ($childids as $childidnumber) {
                     $child             = $DB->get_record('course', array('idnumber' => $childidnumber), '*', MUST_EXIST);
                     $existingchild     = $DB->get_record('enrol', array('enrol' => 'meta', 'courseid' => $metacourse->id, 'customint1' => $child->id));
 
@@ -371,24 +372,45 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
                     $parentstartdate = min(array($parentstartdate, $child->startdate));
                     $parentcategory = $child->category;
                     $parentshortname .= ", " . $child->shortname;
-                    if (is_null($existingchild->id)) {
-                        // Only add if not a duplicate.
+
+                    // Only add if not a duplicate.
+                    if (!isset($existingchild->id)) {
                         $eid        = $enrol->add_instance($metacourse, array('customint1' => $child->id));
+                        // Hide child - users will only interact with the parent.
+                        $child->visible = false;
+                        $DB->update_record('course', $child);
+                    }
+                    array_push($requestchildren, $child->id);
+                }
+
+                // If there are any children that are no longer in the list, remove the meta-link.
+                $currentchildren = array();
+                $currentchildren = $DB->get_records('enrol', array('enrol' => 'meta', 'courseid' => $metacourse->id), null, '*');
+                if (count($requestchildren) != count($currentchildren)) {
+                    foreach ($currentchildren as $checkchild) {
+                        if (!in_array($checkchild->customint1, $requestchildren)) {
+                            // This child is not in the current list; remove the meta link.
+                            $eid = $enrol->delete_instance($checkchild);
+                        }
                     }
                 }
+
                 enrol_meta_sync($metacourse->id);
 
-                // Update the course title, category and start date with the values from te children.
+                // Update the course title, category and start date with the values from the children.
                 if (!empty($parentfullname)) {
                     $metacourse->fullname = ltrim($parentfullname, ", ");
                     $metacourse->shortname = ltrim(substr($parentshortname, 0, 100), ", ");
                     $metacourse->startdate = $parentstartdate;
-                    $metacourse->category = $parentcategory;
+                    if ($metacourse->category == $CFG->defaultrequestcategory) {
+                        $metacourse->category = $parentcategory;
+                    }
                     $DB->update_record('course', $metacourse);
                 }
             }
         } catch (Exception $e) {
-            throw new Exception("Error ading child courses $children to metacourse $course->idnumber. " . $e->getMessage());
+            debugging($e);
+            throw new Exception("Error adding child courses $children to metacourse $course->idnumber. " . $e->getMessage());
         }
 
     }

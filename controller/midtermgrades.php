@@ -168,7 +168,7 @@ class block_intelligent_learning_controller_midtermgrades extends mr_controller_
                         $lastaccesskey = "lastaccess_$userid";
 
                         if (!empty($data->$lastaccesskey) and !empty($datum)) {
-                        	$errormsg = $usergrades[$userid]->ufullname . ": " . get_string('neverattenderror', 'block_intelligent_learning');
+                            $errormsg = $usergrades[$userid]->ufullname . ": " . get_string('neverattenderror', 'block_intelligent_learning');
                             $this->notify->add_string($errormsg);
                             $errorelements[$key] = $datum;
                             unset($usergrades[$userid]->neverattended);
@@ -189,7 +189,7 @@ class block_intelligent_learning_controller_midtermgrades extends mr_controller_
                 }
             }
 
-        try {
+            try {
                 $sissystemerror = false;
                 // Update the SIS; then only save grades that were successfully transmited to the SIS.
                 $ilpapi = get_config('blocks/intelligent_learning', 'ilpapi_url');
@@ -197,55 +197,55 @@ class block_intelligent_learning_controller_midtermgrades extends mr_controller_
                     $sisgrades = block_intelligent_learning_model_gradematrix::get_grades_to_send_to_sis($courseid, $usergrades);
 
                     if (count($sisgrades) > 0) {
-                    	$sisresults = null;
-                    	try {
-                    		$sisresults = ilpsislib::update_sis_grades($sisgrades);
-                    		if ($sisresults->successes == 0) {
-                    			$sissystemerror = true;
-                    		}
-                    	} catch (Exception $e) {
-                    		$sissystemerror = true;
-                    		// General service error; log and display generic message to user and don't save any grades.
-                    		$this->notify->bad('ilpapi_service_error');
-                    		debugging('Error communicating with ILP API: ' . $e->getMessage(), DEBUG_NORMAL);
-                    	}
+                        $sisresults = null;
+                        try {
+                            $sisresults = ilpsislib::update_sis_grades($sisgrades);
+                            if ($sisresults->successes == 0) {
+                                $sissystemerror = true;
+                            }
+                        } catch (Exception $e) {
+                            $sissystemerror = true;
+                            // General service error; log and display generic message to user and don't save any grades.
+                            $this->notify->bad('ilpapi_service_error');
+                            debugging('Error communicating with ILP API: ' . $e->getMessage(), DEBUG_NORMAL);
+                        }
 
-                    	if (isset($sisresults) and count($sisresults->errors) > 0) {
-                    		foreach ($sisresults->errors as $er) {
-                    			if (!empty($er->uidnumber)) {
+                        if (isset($sisresults) and count($sisresults->errors) > 0) {
+                            foreach ($sisresults->errors as $er) {
+                                if (!empty($er->uidnumber)) {
 
-                    				$erroruser = block_intelligent_learning_helper_connector::get_user_by_id($er->uidnumber);
-                    				$studentname = $erroruser->firstname . ' ' . $erroruser->lastname . ': ';
-                    				$usermessage = get_string('ilpapi_error_student', 'block_intelligent_learning', $studentname . $er->message);
-                    				$this->notify->add_string($usermessage);
+                                    $erroruser = block_intelligent_learning_helper_connector::get_user_by_id($er->uidnumber);
+                                    $studentname = $erroruser->firstname . ' ' . $erroruser->lastname . ': ';
+                                    $usermessage = get_string('ilpapi_error_student', 'block_intelligent_learning', $studentname . $er->message);
+                                    $this->notify->add_string($usermessage);
 
-                    				// Remove the failed grades from the matrix to be saved.
-                    				$property = $er->property;
-                    				if (!empty($property)) {
-                    					$errorgrade = $usergrades[$erroruser->id]->$property;
-                    					if (ilpsislib::is_date($errorgrade)) {
-                    						$errorgrade = $this->helper->date($errorgrade);
-                    					}
-                    					$errorelements[$property . '_' . $erroruser->id] = $errorgrade;
-                    					unset($usergrades[$erroruser->id]->$property);
-                    				} else {
-                    					// We don't have enough information to know what specific field failed; unset all.
-                    					$fields = array('mt1', 'mt2', 'mt3', 'mt4', 'mt5', 'mt2', 'expiredate', 'lastaccess', 'neverattended');
-                    					foreach ($fields as $prop) {
-                    						unset($usergrades[$erroruser->id]->$prop);
-                    					}
-                    				}
-                    			} else {
-                    				// There's not enough data to show anything to the end user; display a generic message.
-                    				$this->notify->bad('ilpapi_generic_error');
-                    				break;
-                    			}
-                    		}
-                    	}
+                                    // Remove the failed grades from the matrix to be saved.
+                                    $property = $er->property;
+                                    if (!empty($property)) {
+                                        $errorgrade = $usergrades[$erroruser->id]->$property;
+                                        if (ilpsislib::is_date($errorgrade)) {
+                                            $errorgrade = $this->helper->date($errorgrade);
+                                        }
+                                        $errorelements[$property . '_' . $erroruser->id] = $errorgrade;
+                                        unset($usergrades[$erroruser->id]->$property);
+                                    } else {
+                                        // We don't have enough information to know what specific field failed; unset all.
+                                        $fields = array('mt1', 'mt2', 'mt3', 'mt4', 'mt5', 'mt2', 'expiredate', 'lastaccess', 'neverattended');
+                                        foreach ($fields as $prop) {
+                                            unset($usergrades[$erroruser->id]->$prop);
+                                        }
+                                    }
+                                } else {
+                                    // There's not enough data to show anything to the end user; display a generic message.
+                                    $this->notify->bad('ilpapi_generic_error');
+                                    break;
+                                }
+                            }
+                        }
                     } else {
-                    	debugging("No changes to send to SIS for course " . $courseid, DEBUG_NORMAL);
+                        debugging("No changes to send to SIS for course " . $courseid, DEBUG_NORMAL);
                     }
-                }                
+                }
 
                 if (!empty($errorelements)) {
                     $this->notify->bad('ilpapi_error');

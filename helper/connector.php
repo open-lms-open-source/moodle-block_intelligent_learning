@@ -101,14 +101,12 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
             if (!$courses = enrol_get_users_courses($user->id, true, '*')) {
                 $courses = array();
             }
-
         } else if ($courses = $DB->get_records('course', array('idnumber' => $idnumber))) {
             foreach ($courses as $course) {
                 if ($course->id == SITEID) {
                     throw new Exception("Cannot access site course (idnumber = $course->idnumber)");
                 }
                 $context = context_course::instance($course->id);
-
                 if (!$course->visible and !has_capability('moodle/course:viewhiddencourses', $context, $user->id)) {
                     throw new Exception("User (username = $user->username) cannot view hidden course (idnumber = $course->idnumber)");
                 }
@@ -119,6 +117,10 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
         } else {
             throw new Exception("Invalid course idnumber passed: $idnumber");
         }
+
+        // Exclude courses that are meta-enrollment to other courses.
+        $courses = $this->exclude_meta_enrollments($courses);
+
         return $courses;
     }
 
@@ -399,5 +401,23 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
         }
 
         return $recentactivity;
+    }
+
+    /*
+     * Excludes courses that are meta enrollments to other courses
+     * @param $courses - array of courses
+     */
+    private function exclude_meta_enrollments($courses) {
+        global $DB;
+
+        $primarycourses = array();
+        foreach ($courses as $course) {
+            $children = $DB->get_records('enrol', array('enrol' => 'meta', 'customint1' => $course->id));
+            if (count($children) > 0) {
+                continue;
+            }
+            array_push($primarycourses, $course);
+        }
+        return $primarycourses;
     }
 }

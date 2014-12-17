@@ -93,7 +93,7 @@ if ($ADMIN->fulltree) {
         new lang_string('showneverattendeddesc', 'block_intelligent_learning'),
         1,
         $yesnooptions
-    );   
+    );
 
     $options   = array(
         'expirelabel_expiredate' => new lang_string('expirelabel_expiredate', 'block_intelligent_learning'),
@@ -106,7 +106,7 @@ if ($ADMIN->fulltree) {
         'expirelabel_expiredate',
         $options
     );
-    
+
     $configs[] = new admin_setting_configselect(
         'dateformat',
         new lang_string('dateformat', 'block_intelligent_learning'),
@@ -145,7 +145,7 @@ if ($ADMIN->fulltree) {
         1,
         $yesnooptions
     );
-    
+
     $configs[] = new admin_setting_intelligent_learning_extraletters();
 
     $configs[] = new admin_setting_configtext(

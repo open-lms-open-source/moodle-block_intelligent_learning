@@ -61,7 +61,7 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
     protected $neverattended = false;
 
     protected $defaultincomplete = false;
-    
+
     protected $expirelabel = '';
 
     protected $ilpurl = '';
@@ -283,11 +283,10 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
         $form .= html_writer::start_tag('div', array('class' => 'block-ilp-groupselector'));
         $form .= groups_print_course_menu($COURSE, "$CFG->wwwroot/blocks/intelligent_learning/view.php?controller=$this->controller&action=edit&courseid=$COURSE->id", true);
         $form .= html_writer::end_tag('div');
-        
+
         $form .= html_writer::start_tag('div', array('class' => 'block-ilp-groupselector'));
         $form .= $this->metaenroll_print_course_menu($COURSE, "$CFG->wwwroot/blocks/intelligent_learning/view.php?controller=$this->controller&action=edit&courseid=$COURSE->id", true);
         $form .= html_writer::end_tag('div');
-        
 
         if (!$this->gradematrix->has_usergrades()) {
             if (groups_get_course_group($COURSE)) {
@@ -478,7 +477,7 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
         return $form;
     }
 
-    private function expire_date_header() {    	
+    private function expire_date_header() {
         $form = html_writer::tag('th', get_string($this->expirelabel, 'block_intelligent_learning'), array('class' => $this->classes->thclass));
         $this->tablecols++;
 
@@ -604,7 +603,7 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
 
         return $form;
     }
-    
+
     /**
      * Print group menu selector for course level.
      *
@@ -613,35 +612,34 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
      * @param mixed $urlroot return address. Accepts either a string or a moodle_url
      * @param bool $return return as string instead of printing
      * @return mixed void or string depending on $return param
-     */    
+     */
     private function metaenroll_print_course_menu($course, $urlroot, $return=false) {
-    	 
-    	global $USER, $OUTPUT, $DB;	     
-	
+        global $USER, $OUTPUT, $DB;
+
         $context = context_course::instance($course->id);
         $aag = has_capability('moodle/course:enrolconfig', $context);
-        
-        $output = "";
-        
-        $children = $DB->get_records('enrol', array('enrol' => 'meta', 'courseid' => $course->id));               
-        
-	    if (!empty($children) and (count($children) > 0)) {
-	    	$options = array();
-	    	$options[0] = get_string('allparticipants');	    	    
 
-	        foreach($children as $child) {
-	        	$childcourse = $DB->get_record('course', array('id' => $child->customint1), '*', MUST_EXIST);
-	        	$options[$child->id] = $childcourse->fullname;
-	        }
-	        $metaid = optional_param('meta', 0, PARAM_INT);
-	        $select = new single_select(new moodle_url($urlroot), 'meta', $options, $metaid, null, 'selectgroup');
-	     	$select->label = get_string('metalink_label', 'block_intelligent_learning');
-	     	$output = $OUTPUT->render($select);	    	
-	    }	
-		
-	     $output = '<div class="groupselector">'.$output.'</div>';
-	
-	     return $output;	 
+        $output = "";
+
+        $children = $DB->get_records('enrol', array('enrol' => 'meta', 'courseid' => $course->id));
+
+        if (!empty($children) and (count($children) > 0)) {
+            $options = array();
+            $options[0] = get_string('allparticipants');
+
+            foreach ($children as $child) {
+                $childcourse = $DB->get_record('course', array('id' => $child->customint1), '*', MUST_EXIST);
+                $options[$child->id] = $childcourse->fullname;
+            }
+            $metaid = optional_param('meta', 0, PARAM_INT);
+            $select = new single_select(new moodle_url($urlroot), 'meta', $options, $metaid, null, 'selectgroup');
+            $select->label = get_string('metalink_label', 'block_intelligent_learning');
+            $output = $OUTPUT->render($select);
+        }
+
+         $output = '<div class="groupselector">'.$output.'</div>';
+
+         return $output;
     }
 
     private function require_js() {
