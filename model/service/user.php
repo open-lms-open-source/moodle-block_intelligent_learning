@@ -76,7 +76,8 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
     /**
      * Get a user's recent activity for a course
      *
-     * @param string $username The user's username
+     * @param string $username The user's username; either username or userid is required
+     * @param string $userid - The user's id; either username or userid is required
      * @param string $course The course's idnumber - if not passed, all user courses are returned
      * @param int $fromdate Unix timestamp of the start date
      * @param bool $collapse Send only most recent update to an activity, count the rest
@@ -113,8 +114,9 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
     /**
      * Get a user's due activities for a course
      *
-     * @param string $username The user's username
      * @param int $todate Unix timestamp of the end date
+     * @param string $username The user's username; either username or userid is required
+     * @param string $userid - The user's id; either username or userid is required  
      * @param string $course The course's idnumber - if not passed, all user courses are returned
      * @param bool $deschtml Include HTML description
      * @return string
@@ -250,10 +252,11 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
 
     /**
      * Get a user's course calendar events
-     *
-     * @param string $username The user's username
+     *     
      * @param int $fromdate Unix timestamp of the start date
      * @param int $todate Unix timestamp of the end date
+     * @param string $username - The user's username; either username or id is required
+     * @param string $userid - The user's id; either username or id is required
      * @param string $course The course's idnumber - if not passed, all user courses are returned
      * @return string
      */

@@ -264,7 +264,9 @@ class ilpapiclient {
              "MidtermGrade6":"B",
              "FinalGrade":"B",
              "FinalGradeExpirationDate":"",
+             "ClearFinalGradeExpirationDateFlag":"false",
              "LastAttendanceDate":"",
+             "ClearLastAttendanceDateFlag":"false",
              "NeverAttended" : "true",
              "DefaultIncompleteGrade": "I"
              },
@@ -288,26 +290,34 @@ class ilpapiclient {
             if (!is_null($grades->finalgrade)) {
                 $json .= ', "FinalGrade":"' . $grades->finalgrade. '"';
             }
+
             if (!is_null($grades->mt1)) {
                 $json .= ', "MidtermGrade1":"' . $grades->mt1. '"';
             }
+
             if (!is_null($grades->mt2)) {
                 $json .= ', "MidtermGrade2":"' . $grades->mt2. '"';
             }
+
             if (!is_null($grades->mt3)) {
                 $json .= ', "MidtermGrade3":"' . $grades->mt3. '"';
             }
+
             if (!is_null($grades->mt4)) {
                 $json .= ', "MidtermGrade4":"' . $grades->mt4. '"';
             }
+
             if (!is_null($grades->mt5)) {
                 $json .= ', "MidtermGrade5":"' . $grades->mt5. '"';
             }
+
             if (!is_null($grades->mt6)) {
                 $json .= ', "MidtermGrade6":"' . $grades->mt6. '"';
             }
-            // Always send never attended flag.
-            $json .= ', "NeverAttended" : ' . ($grades->neverattended == '0' ? '"false"' : '"true"');
+
+            if (!is_null($grades->neverattended)) {
+                $json .= ', "NeverAttended" : ' . ($grades->neverattended == '0' ? '"false"' : '"true"');
+            }
 
             if (!is_null($grades->incompletefinalgrade)) {
                 $json .= ',"DefaultIncompleteGrade": "' . $grades->incompletefinalgrade . '"';
@@ -317,12 +327,16 @@ class ilpapiclient {
                 $json .= ', "FinalGradeExpirationDate":"' . date("c", $grades->expiredate) . '"';
             }
 
+            if ($grades->clearexpireflag) {
+                $json .= ', "ClearFinalGradeExpirationDateFlag":' . ($grades->clearexpireflag == '0' ? '"false"' : '"true"');
+            }
+
             if (!is_null($grades->lastaccess)) {
                 $json .= ', "LastAttendanceDate":"' . date("c", $grades->lastaccess) . '"';
             }
 
-            if (!is_null($grades->updateneverattended)) {
-                $json .= ', "UpdateNeverAttended":"' . $grades->updateneverattended . '"';
+            if ($grades->clearlastattendflag) {
+                $json .= ', "ClearLastAttendanceDateFlag":' . ($grades->clearlastattendflag == '0' ? '"false"' : '"true"');
             }
 
             $json .= '},';

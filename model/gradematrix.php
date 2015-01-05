@@ -296,7 +296,7 @@ class block_intelligent_learning_model_gradematrix {
         } else {
             $groupjoin = $groupwhere = '';
         }
-        
+
         $metaid = optional_param('meta', 0, PARAM_INT);
 
         if ($metaid != 0) {
@@ -381,7 +381,6 @@ class block_intelligent_learning_model_gradematrix {
             }
 
             $fields = array('mt1', 'mt2', 'mt3', 'mt4', 'mt5', 'mt6', 'finalgrade', 'expiredate', 'lastaccess', 'neverattended', 'incompletefinalgrade');
-            $stringfields = array('mt1', 'mt2', 'mt3', 'mt4', 'mt5', 'mt6', 'finalgrade', 'incompletefinalgrade');
 
             $sisgrade = ilpsislib::sisgrade($COURSE, $usergrade);
             $sisgrade->requiressisupdate    = false;
@@ -393,6 +392,7 @@ class block_intelligent_learning_model_gradematrix {
                         // Add this record to the list of data to be sent to the SIS; this is a new value.
                         $sisgrade->$field              = $usergrade->$field;
                         $sisgrade->requiressisupdate   = true;
+
                     } else if ($currentgrades[$usergrade->userid]->$field != $usergrade->$field) {
                         if (($field == 'neverattended') and (empty($neverattended))) {
                             continue;
@@ -402,31 +402,47 @@ class block_intelligent_learning_model_gradematrix {
                          * but check first if the grade went from having a value to being blank as this
                          * has special handling in the grades API.
                          */
-                        if (empty($usergrade->$field) and (in_array($field, $stringfields))) {
-                            $sisgrade->$field = "";
-                        } else {
-                            $sisgrade->$field           = $usergrade->$field;
+                        if (empty($usergrade->$field)) {
+                            switch ($field) {
+                                case 'mt1':
+                                case 'mt2':
+                                case 'mt3':
+                                case 'mt4':
+                                case 'mt5':
+                                case 'mt6':
+                                case 'finalgrade':
+                                case 'incompletefinalgrade':
+                                    $sisgrade->$field = "";
+                                    break;
+                                case 'lastaccess':
+                                    $sisgrade->lastaccess = null;
+                                    $sisgrade->clearlastattendflag = true;
+                                    break;
+                                case 'expiredate':
+                                    $sisgrade->expiredate = null;
+                                    $sisgrade->clearexpireflag = true;
+                                    break;
+                                default:
+                                    $sisgrade->$field = $usergrade->$field;
+                                    break;
+                            }
                         }
                         $sisgrade->requiressisupdate    = true;
                     }
 
                     if ($sisgrade->requiressisupdate) {
                         // Check for additional data required for certain fields; incomplete, expire and final
-                        // grades always go together
-
+                        // grades always go together.
                         if (($field == 'incompletefinalgrade') || ($field == 'expiredate') || ($field == 'finalgrade')) {
-                            $sisgrade->finalgrade = $usergrade->finalgrade;
+                            if (is_null($sisgrade->finalgrade)) {
+                                $sisgrade->finalgrade = $usergrade->finalgrade;
+                            }
                             if (!empty($usergrade->incompletefinalgrade)) {
                                 $sisgrade->incompletefinalgrade = $usergrade->incompletefinalgrade;
                             }
                             if (!empty($usergrade->expiredate)) {
                                 $sisgrade->expiredate = $usergrade->expiredate;
                             }
-                        }
-
-                        if ($field == 'neverattended') {
-                            // Set the flag to indicate this field has changed since true/false may not indicate an update.
-                            $sisgrade->updateneverattended = true;
                         }
                     }
                 }

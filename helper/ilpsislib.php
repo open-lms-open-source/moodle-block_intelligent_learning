@@ -84,10 +84,11 @@ class ilpsislib {
         $sisgrade->finalgrade = null;
         $sisgrade->expiredate = null;
         $sisgrade->lastaccess = null;
-        $sisgrade->neverattended = 0;
+        $sisgrade->neverattended = null;
         $sisgrade->incompletefinalgrade = null;
-        $sisgrade->updateneverattended = false;
         $sisgrade->requiressisupdate = false;
+        $sisgrade->clearexpireflag = false;
+        $sisgrade->clearlastattendflag = false;
 
         return $sisgrade;
 

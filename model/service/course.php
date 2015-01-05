@@ -184,13 +184,9 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
         }
 
         // Check if this is a metacourse.
-        try {
-            if (isset($data["children"])) {
-                $children = $data["children"];
-                $this->process_metacourse($course, $children);
-            }
-        } catch (Exception $e) {
-            throw new Exception($e->getMessage());
+        if (isset($data["children"])) {
+            $children = $data["children"];
+            $this->process_metacourse($course, $children);
         }
 
         // Save course format options.
@@ -266,14 +262,9 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             }
         }
         // Check if this is a metacourse.
-        try {
-
-            if (isset($data["children"])) {
-                $children = $data["children"];
-                $this->process_metacourse($course, $children);
-            }
-        } catch (Exception $e) {
-            throw new Exception($e->getMessage());
+        if (isset($data["children"])) {
+            $children = $data["children"];
+            $this->process_metacourse($course, $children);
         }
     }
 
@@ -409,8 +400,9 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
                 }
             }
         } catch (Exception $e) {
-            debugging($e);
-            throw new Exception("Error adding child courses $children to metacourse $course->idnumber. " . $e->getMessage());
+            $errormessage = "Error adding child courses $children to metacourse $course->idnumber. " . $e->getMessage();
+            debugging($errormessage);
+            throw new Exception($errormessage);
         }
 
     }
