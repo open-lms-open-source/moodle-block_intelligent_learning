@@ -128,10 +128,16 @@ class ilpapiclient {
             debugging("Error: " . curl_error($ch), DEBUG_NORMAL);
             throw error ("Unable to update grades. Please contact your system administrator.");
         } else {
-            $response = json_decode($serviceresponse, true);
-            $results = $this->get_service_results($response);
-
-            debugging("Response from ILP service: " . $serviceresponse, DEBUG_NORMAL);
+            $httpstatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if ($httpstatus == 200) {
+                $response = json_decode($serviceresponse, true);
+                $results = $this->get_service_results($response);
+                debugging("Response from ILP service: " . $serviceresponse, DEBUG_NORMAL);
+            } else {
+                debugging("Error processing ILP service. Return code $httpstatus.", DEBUG_NORMAL);
+                debugging("Service response: " . $serviceresponse, DEBUG_NORMAL);
+                throw error("Unable to update grades. Please contact your system administrator");
+            }
         }
 
         curl_close($ch);

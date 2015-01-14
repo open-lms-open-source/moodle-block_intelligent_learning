@@ -349,7 +349,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
                       u1.username AS mt1username, u2.username AS mt2username, u3.username AS mt3username,
                       u4.username AS mt4username, u5.username AS mt5username, u6.username AS mt6username,
                       u7.username AS finalgradeusername, u8.username AS expiredateusername,
-                      u9.username AS lastaccessusername, u9.username AS neverattendedusername, u10.incompletefinalgrade AS incompletefinalgradeusername
+                      u9.username AS lastaccessusername, u9.username AS neverattendedusername
                  FROM {block_intelligent_learning} l
            INNER JOIN {user} u ON l.userid = u.id
            INNER JOIN {course} c ON l.course = c.id
@@ -363,7 +363,6 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
       LEFT OUTER JOIN {user} u8 ON l.expiredateuserid = u8.id
       LEFT OUTER JOIN {user} u9 ON l.lastaccessuserid = u9.id
       LEFT OUTER JOIN {user} u10 ON l.neverattendeduserid = u10.id
-      LEFT OUTER JOIN {user} u11 ON l.incompletefinalgradeuserid = u11.id
                 WHERE l.course != :siteid
                   AND l.timemodified > :starttime
                   AND l.timemodified < :endtime

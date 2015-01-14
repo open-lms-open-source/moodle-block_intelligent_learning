@@ -44,7 +44,7 @@ class ilpsislib {
      * Updates grades in the SIS
      * @param array $sisgrades - array of user grades to be updated in the sis
      */
-    public function update_sis_grades($sisgrades) {
+    public static function update_sis_grades($sisgrades) {
 
         global $COURSE, $USER, $DB;
 
@@ -100,7 +100,7 @@ class ilpsislib {
      * @param $courseid - id of the current course
      * @param $sisgrade - grade record to be sent to the sis           
      */
-    public function get_enrol_course_idnumber($courseid, $sisgrade) {
+    public static function get_enrol_course_idnumber($courseid, $sisgrade) {
 
         global $DB;
 
@@ -128,7 +128,7 @@ class ilpsislib {
     /*
      * Returns true if the input is a valid unix date
      */
-    public function is_date($timestamp) {
+    public static function is_date($timestamp) {
         return (is_int($timestamp))
             && ($timestamp <= PHP_INT_MAX)
             && ($timestamp >= ~PHP_INT_MAX);

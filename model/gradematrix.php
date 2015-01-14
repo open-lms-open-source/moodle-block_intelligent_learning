@@ -366,6 +366,7 @@ class block_intelligent_learning_model_gradematrix {
         $currentgrades = self::singleton($courseid, false)->get_usergrades();
 
         $ilp_sis_records = array();
+        $ilplib = new ilpsislib();
         $gradelock     = get_config('blocks/intelligent_learning', 'gradelock');
         $neverattended = get_config('blocks/intelligent_learning', 'showlastattendance');
 
@@ -382,7 +383,7 @@ class block_intelligent_learning_model_gradematrix {
 
             $fields = array('mt1', 'mt2', 'mt3', 'mt4', 'mt5', 'mt6', 'finalgrade', 'expiredate', 'lastaccess', 'neverattended', 'incompletefinalgrade');
 
-            $sisgrade = ilpsislib::sisgrade($COURSE, $usergrade);
+            $sisgrade = $ilplib->sisgrade($COURSE, $usergrade);
             $sisgrade->requiressisupdate    = false;
 
             foreach ($fields as $field) {
@@ -426,7 +427,10 @@ class block_intelligent_learning_model_gradematrix {
                                     $sisgrade->$field = $usergrade->$field;
                                     break;
                             }
+                        } else {
+                            $sisgrade->$field = $usergrade->$field;
                         }
+
                         $sisgrade->requiressisupdate    = true;
                     }
 
@@ -452,7 +456,7 @@ class block_intelligent_learning_model_gradematrix {
                 // Make sure we're sending to SIS the course id number associated with the user's enrollment,
                 // which does not necessarily match with the current course for meta-link enrollments.
                 $sisgrade->cidnumber = ilpsislib::get_enrol_course_idnumber($COURSE->id, $sisgrade);
-                array_push($ilp_sis_records, $sisgrade);
+                $ilp_sis_records[$sisgrade->userid] = $sisgrade;
             }
         }
 

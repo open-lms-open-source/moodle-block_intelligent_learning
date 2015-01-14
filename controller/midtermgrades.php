@@ -191,6 +191,7 @@ class block_intelligent_learning_controller_midtermgrades extends mr_controller_
 
             try {
                 $sissystemerror = false;
+                $siserrorsflag = false;
                 // Update the SIS; then only save grades that were successfully transmited to the SIS.
                 $ilpapi = get_config('blocks/intelligent_learning', 'ilpapi_url');
                 if (!empty($ilpapi)) {
@@ -200,9 +201,6 @@ class block_intelligent_learning_controller_midtermgrades extends mr_controller_
                         $sisresults = null;
                         try {
                             $sisresults = ilpsislib::update_sis_grades($sisgrades);
-                            if ($sisresults->successes == 0) {
-                                $sissystemerror = true;
-                            }
                         } catch (Exception $e) {
                             $sissystemerror = true;
                             // General service error; log and display generic message to user and don't save any grades.
@@ -212,9 +210,10 @@ class block_intelligent_learning_controller_midtermgrades extends mr_controller_
 
                         if (isset($sisresults) and count($sisresults->errors) > 0) {
                             foreach ($sisresults->errors as $er) {
+                                $siserrorsflag = true;
                                 if (!empty($er->uidnumber)) {
 
-                                    $erroruser = block_intelligent_learning_helper_connector::get_user_by_id($er->uidnumber);
+                                    $erroruser = $this->helper->connector->get_user_by_id($er->uidnumber);
                                     $studentname = $erroruser->firstname . ' ' . $erroruser->lastname . ': ';
                                     $usermessage = get_string('ilpapi_error_student', 'block_intelligent_learning', $studentname . $er->message);
                                     $this->notify->add_string($usermessage);
@@ -224,8 +223,9 @@ class block_intelligent_learning_controller_midtermgrades extends mr_controller_
                                     if (!empty($property)) {
                                         $errorgrade = $usergrades[$erroruser->id]->$property;
                                         if (ilpsislib::is_date($errorgrade)) {
-                                            $errorgrade = $this->helper->date($errorgrade);
+                                            $errorgrade = $this->helper->date->format($errorgrade);
                                         }
+
                                         $errorelements[$property . '_' . $erroruser->id] = $errorgrade;
                                         unset($usergrades[$erroruser->id]->$property);
                                     } else {
@@ -253,7 +253,11 @@ class block_intelligent_learning_controller_midtermgrades extends mr_controller_
 
                 if (!$sissystemerror) {
                     if (block_intelligent_learning_model_gradematrix::save_grades($usergrades)) {
-                        $this->notify->good('gradessubmitted');
+                        if (!$siserrorsflag) {
+                            // If there is an error flag, errors have already been reported; this is a partial save,
+                            // don't report success until all grades are updated correctly.
+                            $this->notify->good('gradessubmitted');
+                        }
                     }
                 }
             } catch (moodle_exception $e) {

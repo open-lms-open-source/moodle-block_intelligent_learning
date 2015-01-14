@@ -318,9 +318,9 @@ function xmldb_block_intelligent_learning_upgrade($oldversion=0) {
     if ($oldversion < 2014110612) {
          // Define field incompletefinalgrade to be added to block_intelligent_learning.
         $table = new xmldb_table('block_intelligent_learning');
-        $field = new xmldb_field('incompletefinalgrade', XMLDB_TYPE_CHAR, '5', null, null, null, null, 'incompletefinalgrade');
+        $field = new xmldb_field('incompletefinalgrade', XMLDB_TYPE_CHAR, '5', null, null, null, null, 'timemodified');
 
-        // Conditionally launch add field finalgradeuserid.
+        // Conditionally launch add field incompletefinalgrade.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }

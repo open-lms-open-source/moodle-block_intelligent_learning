@@ -205,6 +205,7 @@ class block_intelligent_learning_controller_finalgrades extends block_intelligen
 
             try {
                 $sissystemerror = false;
+                $siserrorsflag = false;
                 // Update the SIS; then only save grades that were successfully transmited to the SIS.
                 $ilpapi = get_config('blocks/intelligent_learning', 'ilpapi_url');
                 if (!empty($ilpapi)) {
@@ -214,9 +215,6 @@ class block_intelligent_learning_controller_finalgrades extends block_intelligen
                         $sisresults = null;
                         try {
                             $sisresults = ilpsislib::update_sis_grades($sisgrades);
-                            if ($sisresults->successes == 0) {
-                                $sissystemerror = true;
-                            }
                         } catch (Exception $e) {
                             $sissystemerror = true;
                             // General service error; log and display generic message to user and don't save any grades.
@@ -226,9 +224,10 @@ class block_intelligent_learning_controller_finalgrades extends block_intelligen
 
                         if (isset($sisresults) and count($sisresults->errors) > 0) {
                             foreach ($sisresults->errors as $er) {
+                                $siserrorsflag = true;
                                 if (!empty($er->uidnumber)) {
 
-                                    $erroruser = block_intelligent_learning_helper_connector::get_user_by_id($er->uidnumber);
+                                    $erroruser = $this->helper->connector->get_user_by_id($er->uidnumber);
                                     $studentname = $erroruser->firstname . ' ' . $erroruser->lastname . ': ';
                                     $usermessage = get_string('ilpapi_error_student', 'block_intelligent_learning', $studentname . $er->message);
                                     $this->notify->add_string($usermessage);
@@ -251,6 +250,12 @@ class block_intelligent_learning_controller_finalgrades extends block_intelligen
                                             if (!empty($usergrades[$erroruser->id]->expiredate)) {
                                                 $errorelements['expiredate' . '_' . $erroruser->id] = $this->helper->date->format($usergrades[$erroruser->id]->expiredate);
                                                 unset($usergrades[$erroruser->id]->expiredate);
+                                            } else {
+                                                // Check if it's empty but it's been deleted and unset it as well.
+                                                if ($sisgrades[$erroruser->id]->clearexpireflag) {
+                                                    $errorelements['expiredate' . '_' . $erroruser->id] = $this->helper->date->format($usergrades[$erroruser->id]->expiredate);
+                                                    unset($usergrades[$erroruser->id]->expiredate);
+                                                }
                                             }
                                         }
                                     } else {
@@ -278,7 +283,11 @@ class block_intelligent_learning_controller_finalgrades extends block_intelligen
 
                 if (!$sissystemerror) {
                     if (block_intelligent_learning_model_gradematrix::save_grades($usergrades)) {
-                        $this->notify->good('gradessubmitted');
+                        if (!$siserrorsflag) {
+                            // If there is an error flag, errors have already been reported; this is a partial save,
+                            // don't report success until all grades are updated correctly.
+                            $this->notify->good('gradessubmitted');
+                        }
                     }
                 }
             } catch (moodle_exception $e) {

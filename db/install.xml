@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="blocks/intelligent_learning/db" VERSION="20110209" COMMENT="XMLDB file for Moodle blocks/intelligent_learning"
+<XMLDB PATH="blocks/intelligent_learning/db" VERSION="20150112" COMMENT="XMLDB file for Moodle blocks/intelligent_learning"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
