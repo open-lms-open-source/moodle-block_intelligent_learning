@@ -103,7 +103,6 @@ class block_intelligent_learning_controller_finalgrades extends block_intelligen
                     }
 
                     $userid = $keypieces[1];
-
                     if (strpos($keypieces[0], 'finalgrade') === 0) {
 
                         $datum = clean_param($datum, PARAM_TEXT);
@@ -206,6 +205,7 @@ class block_intelligent_learning_controller_finalgrades extends block_intelligen
             try {
                 $sissystemerror = false;
                 $siserrorsflag = false;
+
                 // Update the SIS; then only save grades that were successfully transmited to the SIS.
                 $ilpapi = get_config('blocks/intelligent_learning', 'ilpapi_url');
                 if (!empty($ilpapi)) {
@@ -237,24 +237,26 @@ class block_intelligent_learning_controller_finalgrades extends block_intelligen
                                     if (!empty($property)) {
                                         $errorgrade = $usergrades[$erroruser->id]->$property;
                                         if (ilpsislib::is_date($errorgrade)) {
-                                            $errorgrade = $this->helper->date($errorgrade);
+                                            $errorgrade = $this->helper->date->format($errorgrade);
                                         }
                                         $errorelements[$property . '_' . $erroruser->id] = $errorgrade;
                                         unset($usergrades[$erroruser->id]->$property);
                                         if ($property == 'finalgrade') {
                                             // Unset exp date and incomplete final grade as well.
-                                            if (!empty($usergrades[$erroruser->id]->incompletefinalgrade)) {
+                                            if (property_exists($usergrades[$erroruser->id], 'incompletefinalgrade')) {
                                                 $errorelements['incompletefinalgrade' . '_' . $erroruser->id] = $usergrades[$erroruser->id]->incompletefinalgrade;
                                                 unset($usergrades[$erroruser->id]->incompletefinalgrade);
                                             }
-                                            if (!empty($usergrades[$erroruser->id]->expiredate)) {
-                                                $errorelements['expiredate' . '_' . $erroruser->id] = $this->helper->date->format($usergrades[$erroruser->id]->expiredate);
-                                                unset($usergrades[$erroruser->id]->expiredate);
-                                            } else {
-                                                // Check if it's empty but it's been deleted and unset it as well.
-                                                if ($sisgrades[$erroruser->id]->clearexpireflag) {
+                                            if (property_exists($usergrades[$erroruser->id], 'expiredate')) {
+                                                if (!empty($usergrades[$erroruser->id]->expiredate)) {
                                                     $errorelements['expiredate' . '_' . $erroruser->id] = $this->helper->date->format($usergrades[$erroruser->id]->expiredate);
                                                     unset($usergrades[$erroruser->id]->expiredate);
+                                                } else {
+                                                    // Check if it's empty but it's been deleted and unset it as well.
+                                                    if ($sisgrades[$erroruser->id]->clearexpireflag) {
+                                                        $errorelements['expiredate' . '_' . $erroruser->id] = $usergrades[$erroruser->id]->expiredate;
+                                                        unset($usergrades[$erroruser->id]->expiredate);
+                                                    }
                                                 }
                                             }
                                         }
@@ -270,15 +272,16 @@ class block_intelligent_learning_controller_finalgrades extends block_intelligen
                                     $this->notify->bad('ilpapi_generic_error');
                                     break;
                                 }
-                            }
-                        }
-                    } else {
-                        debugging("No changes to send to SIS for course " . $courseid, DEBUG_NORMAL);
-                    }
-                }
 
-                if (!empty($errorelements)) {
-                    $this->notify->bad('ilpapi_error');
+                            }
+                        } else {
+                            debugging("No changes to send to SIS for course " . $courseid, DEBUG_NORMAL);
+                        }
+                    }
+
+                    if (!empty($errorelements)) {
+                        $this->notify->bad('ilpapi_error');
+                    }
                 }
 
                 if (!$sissystemerror) {

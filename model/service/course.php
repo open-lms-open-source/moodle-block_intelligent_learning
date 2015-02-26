@@ -86,6 +86,7 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
 
         // Try to get the course that we are operating on.
         $course = false;
+
         if ($courseid = $DB->get_field('course', 'id', array('idnumber' => $data['idnumber']))) {
             $course = course_get_format($courseid)->get_course();
         }
@@ -342,7 +343,6 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
         global $CFG, $DB;
         try {
             if (isset($children)) {
-                // This is a metacourse - the parent.
                 $parentfullname = "";
                 $parentcategory = "";
                 $parentshortname = "";
@@ -355,23 +355,27 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
                 $metacourse = $DB->get_record('course', array('idnumber' => $course->idnumber), '*', MUST_EXIST);
 
                 $requestchildren = array();
-                foreach ($childids as $childidnumber) {
-                    $child             = $DB->get_record('course', array('idnumber' => $childidnumber), '*', MUST_EXIST);
-                    $existingchild     = $DB->get_record('enrol', array('enrol' => 'meta', 'courseid' => $metacourse->id, 'customint1' => $child->id));
 
-                    $parentfullname .= ", " . $child->fullname;
-                    $parentstartdate = min(array($parentstartdate, $child->startdate));
-                    $parentcategory = $child->category;
-                    $parentshortname .= ", " . $child->shortname;
+                if (!empty($children)) {
+                    // If children is set but empty, that means we are removing all children from the course; skip this.
+                    foreach ($childids as $childidnumber) {
+                        $child             = $DB->get_record('course', array('idnumber' => $childidnumber), '*', MUST_EXIST);
+                        $existingchild     = $DB->get_record('enrol', array('enrol' => 'meta', 'courseid' => $metacourse->id, 'customint1' => $child->id));
 
-                    // Only add if not a duplicate.
-                    if (!isset($existingchild->id)) {
-                        $eid        = $enrol->add_instance($metacourse, array('customint1' => $child->id));
-                        // Hide child - users will only interact with the parent.
-                        $child->visible = false;
-                        $DB->update_record('course', $child);
+                        $parentfullname .= ", " . $child->fullname;
+                        $parentstartdate = min(array($parentstartdate, $child->startdate));
+                        $parentcategory = $child->category;
+                        $parentshortname .= ", " . $child->shortname;
+
+                        // Only add if not a duplicate.
+                        if (!isset($existingchild->id)) {
+                            $eid        = $enrol->add_instance($metacourse, array('customint1' => $child->id));
+                            // Hide child - users will only interact with the parent.
+                            $child->visible = false;
+                            $DB->update_record('course', $child);
+                        }
+                        array_push($requestchildren, $child->id);
                     }
-                    array_push($requestchildren, $child->id);
                 }
 
                 // If there are any children that are no longer in the list, remove the meta-link.
@@ -389,7 +393,7 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
                 enrol_meta_sync($metacourse->id);
 
                 // Update the course title, category and start date with the values from the children.
-                if (!empty($parentfullname)) {
+                if (!empty($parentfullname) && ($parentfullname != "")) {
                     $metacourse->fullname = ltrim($parentfullname, ", ");
                     $metacourse->shortname = ltrim(substr($parentshortname, 0, 100), ", ");
                     $metacourse->startdate = $parentstartdate;

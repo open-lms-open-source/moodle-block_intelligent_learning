@@ -435,9 +435,14 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
     private function default_incomplete($usergrade) {
         $value = '';
         $attributes = array('class' => '');
+
         if (!empty($usergrade->incompletefinalgrade)) {
             $value = $usergrade->incompletefinalgrade;
             $attributes['class'] = $this->classes->submittedclass;
+        }
+
+        if (($this->gradelock) && (!empty($usergrade->finalgrade))) {
+            $attributes['disabled'] = 'disabled';
         }
 
         $id = "incompletefinalgrade_$usergrade->uid";
@@ -490,6 +495,10 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
         $attributes = array('class' => $this->classes->submittedclass);
         if (!empty($usergrade->expiredate)) {
             $value = $this->helper->date->format($usergrade->expiredate);
+        }
+
+        if (($this->gradelock) && (!empty($usergrade->finalgrade))) {
+            $attributes['disabled'] = 'disabled';
         }
 
         $id = "expiredate_$usergrade->uid";

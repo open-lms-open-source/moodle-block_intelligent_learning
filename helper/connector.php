@@ -121,6 +121,9 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
         // Exclude courses that are meta-enrollment to other courses.
         $courses = $this->exclude_meta_enrollments($courses);
 
+        // Exclude courses that have a start date that is older than the max number of days specified in config.
+        $courses = $this->exclude_old_courses($courses);
+
         return $courses;
     }
 
@@ -420,4 +423,38 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
         }
         return $primarycourses;
     }
+
+    /*
+     * Excludes courses that have a start day older than the max specified
+     * @param $courses - array of courses
+     * @param $maxdays - maximum number of days from the start date of a class that it should stay in
+     * the list.
+     */
+    private function exclude_old_courses($courses) {
+
+        $currentcourses = array();
+        $maxdays = get_config('blocks/intelligent_learning', 'maxnumberofdays');
+
+        if (isset($maxdays) && is_numeric($maxdays) && ($maxdays > 0)) {
+            try {
+                foreach ($courses as $course) {
+                    $daysold = (time() - $course->startdate) / 86400;
+                    if ($daysold < $maxdays) {
+                        array_push($currentcourses, $course);
+                    } else {
+                        debugging("Excluding course with id $course->id from courses list because its start date " . date("Y-M-d", $course->startdate) ." is older than $maxdays days old", DEBUG_NORMAL);
+                    }
+                }
+            } catch (moodle_exception $e) {
+                // Don't stop the service because of this; log and continue.
+                debugging("Error limiting classes to max number of days. " . $e->getMessage(), DEBUG_ERROR);
+                $currentcourses = $courses;
+            }
+        } else {
+            $currentcourses = $courses;
+        }
+
+        return $currentcourses;
+    }
+
 }

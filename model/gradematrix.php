@@ -371,10 +371,16 @@ class block_intelligent_learning_model_gradematrix {
         $neverattended = get_config('blocks/intelligent_learning', 'showlastattendance');
 
         foreach ($usergrades as $usergrade) {
-
             if ($gradelock) {
                 if (!empty($currentgrades[$usergrade->userid]) and !empty($currentgrades[$usergrade->userid]->finalgrade)) {
                     unset($usergrade->finalgrade);
+                    // Also unset the two other properties that would be locked along with final grade.
+                    if (property_exists($usergrade, 'expiredate')) {
+                        unset($usergrade->expiredate);
+                    }
+                    if (property_exists($usergrade, 'incompletefinalgrade')) {
+                        unset($usergrade->incompletefinalgrade);
+                    }
                 }
                 if (empty($usergrade)) {
                     continue;
@@ -384,15 +390,16 @@ class block_intelligent_learning_model_gradematrix {
             $fields = array('mt1', 'mt2', 'mt3', 'mt4', 'mt5', 'mt6', 'finalgrade', 'expiredate', 'lastaccess', 'neverattended', 'incompletefinalgrade');
 
             $sisgrade = $ilplib->sisgrade($COURSE, $usergrade);
-            $sisgrade->requiressisupdate    = false;
+            $sisgrade->requiressisupdate    = $fieldupdated = false;
 
             foreach ($fields as $field) {
+                $fieldupdated = false;
                 if (property_exists($usergrade, $field)) {
                     if ((empty($currentgrades[$usergrade->userid]->$field)) and (!empty($usergrade->$field))) {
 
                         // Add this record to the list of data to be sent to the SIS; this is a new value.
                         $sisgrade->$field              = $usergrade->$field;
-                        $sisgrade->requiressisupdate   = true;
+                        $sisgrade->requiressisupdate   = $fieldupdated = true;
 
                     } else if ($currentgrades[$usergrade->userid]->$field != $usergrade->$field) {
                         if (($field == 'neverattended') and (empty($neverattended))) {
@@ -431,15 +438,18 @@ class block_intelligent_learning_model_gradematrix {
                             $sisgrade->$field = $usergrade->$field;
                         }
 
-                        $sisgrade->requiressisupdate    = true;
+                        $sisgrade->requiressisupdate = $fieldupdated = true;
                     }
 
-                    if ($sisgrade->requiressisupdate) {
+                    if ($fieldupdated) {
                         // Check for additional data required for certain fields; incomplete, expire and final
                         // grades always go together.
                         if (($field == 'incompletefinalgrade') || ($field == 'expiredate') || ($field == 'finalgrade')) {
-                            if (is_null($sisgrade->finalgrade)) {
+                            if (!isset($sisgrade->finalgrade) || is_null($sisgrade->finalgrade)) {
                                 $sisgrade->finalgrade = $usergrade->finalgrade;
+                                if (is_null($sisgrade->finalgrade)) {
+                                    $sisgrade->finalgrade = "";
+                                }
                             }
                             if (!empty($usergrade->incompletefinalgrade)) {
                                 $sisgrade->incompletefinalgrade = $usergrade->incompletefinalgrade;

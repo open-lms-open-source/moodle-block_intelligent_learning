@@ -85,7 +85,7 @@ class ilpapiclient {
         $options = array(
                 CURLOPT_HEADER => false,
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 20,
+                CURLOPT_TIMEOUT => 30,
                 CURLOPT_POST => 1,
                 CURLOPT_RETURNTRANSFER => true
         );
