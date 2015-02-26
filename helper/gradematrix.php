@@ -217,7 +217,7 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
                 $attributes = array_merge($attributes, array(
                     'id' => $id,
                     'type' => 'text',
-                    'size' => '8',
+                    'size' => '10',
                     'name' => $id,
                     'value' => $value,
                 ));
@@ -512,7 +512,7 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
             'id' => $id,
             'name' => $id,
             'value' => $value,
-            'size' => '8',
+            'size' => '10',
         ));
 
         $form = html_writer::start_tag('td', array('class' => 'block-ilp-td'));
