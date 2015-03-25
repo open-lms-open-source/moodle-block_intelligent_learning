@@ -480,9 +480,8 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             }
         }
     }
-    
-    
-    //////////////////////////////////////NEW ILP API starts here/////////////////////////////////////////////////////////////
+	
+	 //////////////////////////////////////NEW ILP API starts here/////////////////////////////////////////////////////////////
 
 
     /**
@@ -538,6 +537,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             $sections = $this->helper->connector->get_courses_where_user_is_enrolled($userid , $startDate);
             //die(var_export($sections, false));
             foreach ($sections as $section){
+			if(!empty($section->idnumber)){
             $result = array ();
             $courses = array();
             $courses[] = $section->id;
@@ -570,7 +570,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             $results[] = array (
                 'activity' => $result
             );
-            
+            }
             }
          }
       }
@@ -995,7 +995,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
                         where 
                             {user}.id   = {grade_grades}.userid and
                             {course}.id = {grade_items}.courseid and
-                            {grade_items}.id = {grade_grades}.itemid and ({grade_items}.itemtype = 'mod' OR {grade_items}.itemtype = 'manual' or {grade_items}.itemtype='course')";
+                            {grade_items}.id = {grade_grades}.itemid and ({grade_items}.itemtype = 'mod' OR {grade_items}.itemtype = 'manual')";
 
         // Start to add additional conditions to the query
         $addAnd = " and ";
@@ -1295,9 +1295,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
     
     
     //////////////////////////////NEW ILP API Ends Here/////////////////////////////////////////////////////////////////////
-    
-    
-    
-    
-    
+	
+	
+	
 }
