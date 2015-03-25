@@ -480,8 +480,8 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             }
         }
     }
-	
-	 //////////////////////////////////////NEW ILP API starts here/////////////////////////////////////////////////////////////
+ 
+  //////////////////////////////////////NEW ILP API starts here/////////////////////////////////////////////////////////////
 
 
     /**
@@ -537,7 +537,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             $sections = $this->helper->connector->get_courses_where_user_is_enrolled($userid , $startDate);
             //die(var_export($sections, false));
             foreach ($sections as $section){
-			if(!empty($section->idnumber)){
+            if(!empty($section->idnumber)){
             $result = array ();
             $courses = array();
             $courses[] = $section->id;
@@ -1295,7 +1295,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
     
     
     //////////////////////////////NEW ILP API Ends Here/////////////////////////////////////////////////////////////////////
-	
-	
-	
+ 
+ 
+ 
 }
