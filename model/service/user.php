@@ -1005,39 +1005,21 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
         if (strlen($userIds) > 0) {
             //add quotes to incoming list
             $UserIDList = explode(",", $userIds);
+            $UserIDList = clean_param_array($UserIDList, PARAM_NOTAGS);
             
-            $firstInList = true;
-            $UserOutput = "";
-            foreach ($UserIDList as $id) {
-                if ($firstInList) {
-                    $firstInList = false;
-                } else {
-                    $UserOutput .= ",";
-                }
-
-                $UserOutput .= "'" . clean_param($id, PARAM_TEXT) . "'";
-            }
-
-            $sql .= $addAnd . " {user}.idnumber in ( $UserOutput ) ";
+            list($inusersql, $userparams) = $DB->get_in_or_equal($UserIDList);
+            $sql .= $addAnd . ' {user}.idnumber ' . $inusersql;
+            $params = array_merge($params, $userparams);
         }
 
         // Add sectionIds to the query
         if (strlen($sectionIds) > 0) {
             //add quotes to incoming list
             $SectionIdList = explode(",", $sectionIds);
-            $firstInList = true;
-            $SectionOutput = "";
-            foreach ($SectionIdList as $id) {
-                if ($firstInList) {
-                    $firstInList = false;
-                } else {
-                    $SectionOutput .= ",";
-                }
-
-                $SectionOutput .= "'" . clean_param($id, PARAM_TEXT) . "'";
-            }
-
-            $sql .= $addAnd . " {course}.idnumber in ( $SectionOutput ) ";
+            $SectionIdList = clean_param_array($SectionIdList, PARAM_NOTAGS);
+            list($incoursesql, $courseparams) = $DB->get_in_or_equal($SectionIdList);
+            $sql .= $addAnd . ' {course}.idnumber ' . $incoursesql;
+            $params = array_merge($params, $courseparams);
         }
 
         //Add the start date to the query
@@ -1056,7 +1038,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
         if (count($params) < 1) {
             throw new Exception("Error, atleast one parameter is required");
         }
-
+        //die(var_export($params, true));
         $data = $DB->get_records_sql($sql, $params);
         $returnData = array ();
         $updateData = array ();
