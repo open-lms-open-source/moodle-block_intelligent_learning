@@ -522,8 +522,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             }
         }
     }
-<<<<<<< HEAD
-=======
+
  
   //////////////////////////////////////NEW ILP API starts here/////////////////////////////////////////////////////////////
 
@@ -1323,6 +1322,5 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
     //////////////////////////////NEW ILP API Ends Here/////////////////////////////////////////////////////////////////////
  
  
- 
->>>>>>> origin/master
+
 }
