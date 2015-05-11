@@ -314,6 +314,8 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
 
         $form .= $this->populategrade_form();
 
+        $form .= $this->cleargrades_form();
+
         $form .= html_writer::start_tag('table', array('id' => 'gmtable', 'class' => 'block-ilp-gmtable'));
 
         $form .= html_writer::start_tag('tr', array('class' => 'top'));
@@ -592,24 +594,81 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
         }
 
         $options = array();
+        $populatelabel = "";
         switch ($this->controller) {
             case 'midtermgrades':
                 for ($i = 1; $i <= $this->mtcolumns; $i++) {
                     $options["mt$i"] = get_string('midterm', 'block_intelligent_learning', $i);
                 }
                 $choosestring = get_string('populatemidterm', 'block_intelligent_learning');
+                $populatelabel = get_string('populatemidtermlabel', 'block_intelligent_learning');
                 break;
 
             case 'finalgrades':
                 $options["finalgrade"] = get_string('finalgrade', 'block_intelligent_learning');
                 $choosestring = get_string('populatefinalgrade', 'block_intelligent_learning');
+                $populatelabel = get_string('populatefinalgradelabel', 'block_intelligent_learning');
                 break;
         }
 
-        $menu    = html_writer::select($options, 'populategrade', '', $choosestring, array('id' => 'block-ilp-populategrade'));
+        $menu = html_writer::label($populatelabel . ' ', 'block-ilp-populategrade', false, array());
+        $menu .= html_writer::select($options, 'populategrade', '', $choosestring, array('id' => 'block-ilp-populategrade'));
 
-        $form .= $OUTPUT->box("$menu", 'block-ilp-gradepopulate');
+        $form .= $OUTPUT->box("$menu", 'block-ilp-gradepopulate groupselector');
 
+        return $form;
+    }
+
+    private function cleargrades_form() {
+        global $COURSE, $OUTPUT;
+
+        $form = '';
+
+        if (!in_array($this->controller, array('midtermgrades', 'finalgrades'))) {
+            return $form;
+        }
+
+        if ($this->controller == 'midtermgrades' and $this->mtcolumns < 1) {
+            return $form;
+        }
+
+        $options = array();
+        $clearlabel = get_string('cleargradeslabel', 'block_intelligent_learning');
+        $cleardescexplanation = '';
+        $clearfields = '';
+        switch ($this->controller) {
+            case 'midtermgrades':
+                if ($this->mtcolumns > 1) {
+                    // Clear grades is not supported for multiple midterm grades.
+                    return $form;
+                }
+                $clearfields .= 'mt1';
+                $cleardescexplanation = get_string('cleargradesexplanationmidterm','block_intelligent_learning');
+                break;
+
+            case 'finalgrades':
+                if ($this->gradelock) {
+                    return $form;
+                }
+
+                $clearfields .= 'finalgrade';
+                if (!empty($this->showdefaultincomplete)) {
+                    $clearfields .= '-incompletefinalgrade';
+                }
+                $clearfields .= '-expiredate';
+                $cleardescexplanation = get_string('cleargradesexplanationfinal','block_intelligent_learning');
+                break;
+        }
+
+        $form .= html_writer::tag('p', '');
+        $form .= html_writer::start_tag('div');
+        $form .= html_writer::start_tag('div', array('class' => 'groupselector'));
+        $form .= html_writer::tag('label', get_string('cleargradesdescription', 'block_intelligent_learning'));
+        $form .= html_writer::empty_tag('input', array('type' => 'button', 'value' => $clearlabel, 'id' => 'block-ilp-cleargrades', 'data-clearfields' => $clearfields));
+        $form .= html_writer::end_tag('div');
+        $form .= html_writer::end_tag('div');
+        $form .= html_writer::tag('div', $cleardescexplanation);
+        $form .= html_writer::tag('p', '');
         return $form;
     }
 

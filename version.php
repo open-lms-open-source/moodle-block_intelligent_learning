@@ -44,10 +44,10 @@
  *
  **/
 
-$plugin->version = 2015020501;
+$plugin->version = 2015032407;
 $plugin->requires = 2013111803;
 $plugin->component = 'block_intelligent_learning';
-$plugin->release   = '2.6.0 (Build: 20140603)';
+$plugin->release   = '2.7.0 (Build: 20150301)';
 $plugin->dependencies = array(
     'local_mr' => 2010090201,
     'mod_assign' => ANY_VERSION,

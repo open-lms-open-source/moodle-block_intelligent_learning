@@ -86,11 +86,6 @@ $string['gradebookapp'] = 'Aplicación del Libro de Calificaciones';
 $string['gradebookappdesc'] = 'La aplicación que maneja al reporte de las calificaciones';
 $string['gradebookapperror'] = 'La Aplicación del Libro de Calificaciones no está ajustada a Moodle.';
 $string['gradelock'] = 'Bloquear Calificaciones';
-$string['gradevalidatelocalgradescheme'] = '¿Validar las calificaciones contra el esquema de calificaciones de Moodle?';
-$string['gradevalidatelocalgradeschemedesc'] = 'Si se selecciona "Sí", las calificaciones parciales y finales serán '.
-    'validadas contra AMBOS esquemas, el esquema de calificaciones de curso especificado en Moodle y contra el especificado '.
-    'en el SIS. Si se selecciona "No", las calificaciones parciales y finales serán validadas solamente contra el '.
-    'esquema de calificaciones de curso especificado en el SIS.';
 $string['gradelockdesc'] = '¿Permitir a los docentes modificar las calificaciones finales después de ser enviadas?';
 $string['gradematrixtab'] = 'Calificaciones Parciales/Finales';
 $string['gradessubmitted'] = 'Calificaciones enviadas';
@@ -112,7 +107,6 @@ $string['lastattendancetab'] = 'Última Fecha de Asistencia';
 $string['lastattendancetableheader'] = 'Última Fecha de Asistencia';
 $string['lastattendance_help'] = '<p>El formulario de Última Fecha de Asistencia (LDA) permite al usuario editar la última fecha de asistencia de los alumnos.</p>';
 $string['ldasubmitted'] = 'LDA enviada';
-$string['incompletefinalgrade'] = 'Calificación Final Incompleta';
 $string['lettergradetoolong'] = 'La calificación en letra \"{$a}\" debe tener menos de tres caracteres.';
 $string['midterm'] = 'Parcial {$a}';
 $string['midtermgradecolumns'] = 'Calificaciones Parciales';
@@ -132,8 +126,14 @@ $string['notavailable'] = 'Expiró el periodo para calificar.';
 $string['notvalidgrade'] = '{$a} no es una calificación válida para esta clase.';
 $string['outsideoflimits'] = 'Falló la conversión de la fecha capturada como {$a->date}.  Formato válido: {$a->format}';
 $string['pluginname'] = 'Integración con ILP';
-$string['populatefinalgrade'] = 'Llenar con la calificación del curso...';
-$string['populatemidterm'] = 'Llenar el parcial con la calificación del curso...';
+$string['populatefinalgrade'] = '--Seleccione la columna a llenar--';
+$string['populatemidterm'] = '--Seleccione la columna a llenar--';
+$string['populatefinalgradelabel'] = 'Llenar calificación final a partir de calificación actual';
+$string['populatemidtermlabel'] = 'Llenar calificación parcial a partir de calificación actual';
+$string['cleargradeslabel'] = 'Borrar calificaciones de la forma';
+$string['cleargradesexplanationfinal'] = 'Después de borrar los valores, puede volver a llenar las calificaciones finales a partir de calificaciones actuales.';
+$string['cleargradesexplanationmidterm'] = 'Después de borrar los valores, puede volver a llenar las calificaciones parciales a partir de calificaciones actuales.';
+$string['cleargradesdescription'] = 'Haga clic en "Borrar calificaciones de la forma" para comenzar de nuevo';
 $string['retentionalert'] = 'Alerta de Retención';
 $string['retentionalertlink'] = 'Vínculo de Alerta de Retención';
 $string['retentionalertlinkdesc'] = '¿Mostrar los vínculos de alerta de retención? (Nota: Esta configuración solo se aplica a los clientes de Colleague).';
@@ -143,22 +143,13 @@ $string['retentionalertpiddesc'] = 'ID de Proceso de la Alerta de Retención. (N
 $string['retentionalerttab'] = 'Alerta de Retención';
 $string['retentionalert_help'] = '<p>Dar clic en el vínculo de Alerta de Retención junto al nombre del alumno para ingresar información de retención de ese alumno en WebAdvisor. El dar clic en el vínculo abrirá una nueva ventana del navegador con la correspondiente página de Alerta de Retención mostrada en WebAdvisor en Colleague Portal.</p>';
 $string['showlastattendance'] = 'Mostrar la Última Asistencia';
-$string['showlastattendancedesc'] = '¿Mostrar los vínculos de la última fecha de asistencia?';
-$string['showneverattended'] = 'Mostrar la columna Nunca Asistió en los formularios de calificaciones';
-$string['showneverattendeddesc'] = '¿Mostrar la columna Nunca Asistió en los formularios de calificaciones? (Nota: Esta configuración solo aplica ' .
-    ' a los clientes de Colleague. Los clientes de Banner deben asignar No a este valor). Observar que se puede especificar de manera independiente que se muestre la columna Última Fecha de Asistencia '.
-    'con la configuración "Mostrar la Última Asistencia".';
-$string['showdefaultincomplete'] = "¿Mostrar la columna de Calificación Final Incompleta en los formularios de calificaciones?";
-$string['showdefaultincompletedesc'] = "¿Mostrar una columna para la Calificación Final Incompleta que puede usarse por los docentes al capturar una calificación incompleta? (Nota: Esta configuración solo se aplica a los clientes de Banner).";
+$string['showlastattendancedesc'] = '¿Mostrar los vínculos de la última fecha de asistencia? (Nota: Esta configuración solo se aplica a los clientes de Colleague).';
+$string['showdefaultgrade'] = "¿Mostrar la calificación predefinida para Calificaciones Incompletas?";
+$string['showdefaultgradedesc'] = "¿Mostrar una columna para la Calificación Predefinida que puede usarse por los docentes al capturar una calificación incompleta? (Nota: Esta configuración solo se aplica a los clientes de Banner).";
 $string['stgradebookpid'] = 'ID de Proceso de ST Gradebook';
 $string['stgradebookpiddesc'] = 'ID de Proceso de ST Gradebook. (Nota: Esta configuración solo se aplica a los clientes de Colleague).';
 $string['submitgrades'] = 'Enviar Calificaciones';
 $string['submitlda'] = 'Enviar LDA';
-$string['expirelabel'] = 'Etiqueta de la Fecha de Expiración/Extensión de la calificación final';
-$string['expirelabeldesc'] = 'Seleccionar el encabezado de columna a ser desplegado en el formulario de calificaciones finales para la fecha de expiración o '.
-    'de extensión de las calificaciones finales incompletas. El encabezado de la columna debe ser consistente con la terminología de esa fecha en su SIS.';
-$string['expirelabel_expiredate'] = 'Fecha de expiración';
-$string['expirelabel_extensiondate'] = 'Fecha de extensión';
 $string['updatedactivity'] = 'Se actualizó {$a->modname} por {$a->fullname}';
 $string['webserviceendpoints'] = 'Endpoints de los Servicios Web';
 $string['webservices_ipaddresses'] = 'Direcciones de IP';
@@ -169,7 +160,6 @@ $string['colleaguesection'] = 'Configuración de Colleague';
 $string['bannersection'] = 'Configuración de Banner';
 $string['maxnumberofdays'] = 'Número máximo de días para mostrar las clases';
 $string['maxnumberofdaysdesc'] = 'Número máximo de días para mostrar las clases, desde una fecha de inicio de clase, en solicitudes generadas desde aplicaciones externas';
-$string['metalink_label'] = 'Inscripción de Sección';
 $string['livegrades'] = 'Sincronización de Calificaciones en Vivo (ILP 4.2 o superior)';
 $string['ilpapi_url'] = 'URL de la API de ILP';
 $string['ilpapi_urldesc'] = 'IMPORTANTE: Usar esta configuración solo si está ejecutando ILP 4.2 o superior. Ingresar el URL del sitio web de los servicios de ILP.';
@@ -181,12 +171,3 @@ $string['ilpapi_error_student'] = 'Error al actualizar los datos del alumno {$a}
 $string['ilpapi_error'] = 'Algunas calificaciones no pueden actualizarse. Favor de corregir los errores listados arriba y volver a enviar.';
 $string['ilpapi_service_error'] = 'Error de comunicación con el servicio de calificaciones. Favor de contactar al administrador para obtener ayuda.';
 $string['ilpapi_generic_error'] = 'No es posible actualizar las calificaciones. Favor de contactar al administrador para obtener ayuda.';
-$string['ilpapi_issslcaauthority'] = '¿El certificado SSL del sitio de Servicios de ILP fue emitido por una Autoridad de certificación (CA)?';
-$string['ilpapi_certpath'] = 'Opcional: ruta al paquete de certificados CA';
-$string['ilpapi_sslcawarning'] = 'IMPORTANTE: Usar esta configuración solo si está ejecutando ILP 4.2 o superior. Sin un certificado emitido por una CA, las comunicaciones entre ILP y Moodle son ' .
-        'menos seguras, ya que Moodle confiará en cualquier certificado que reciba.';
-$string['ilpapi_certexplanation'] = 'IMPORTANTE: Usar esta configuración solo si está ejecutando ILP 4.2 o superior. Si el certificado SSL usado por el sitio de Servicios de ILP fue emitido por una CA, puede usar este campo para ' .
-        'especificar la ubicación del paquete de certificados CA en su sistema. En la mayoría de los casos no necesitará especificar ' .
-        'la ubicación de un paquete de certificados si un paquete predefinido está configurado en todo el sistema. Sin embargo, en ' .
-        'ciertas configuraciones, no está disponible ningún paquete predefinido y la ruta relativa a un paquete de certificados debe ' .
-        'especificarse. Si su sitio de Moodle está hospedado por Moodlerooms, hay que dejar este campo en blanco.';

@@ -13,7 +13,7 @@ M.block_intelligent_learning.init_gradematrix = function(Y, grades) {
     var menuNode = Y.one('div.block-ilp-groupselector select');
 
     if (menuNode) {
-        
+
         var form = Y.one('div.block-ilp-groupselector form');
 
         // the following code block altered from M.util.init_autosubmit
@@ -23,7 +23,7 @@ M.block_intelligent_learning.init_gradematrix = function(Y, grades) {
 
             // Create a function to handle our change event
             var processchange = function(e, lastindex) {
-                
+
                 if (lastindex != menuNode.get('selectedIndex')) {
                     if (unsavedData) {
                         // User has unsaved data - confirm they want to change group and lose grades
@@ -75,11 +75,40 @@ M.block_intelligent_learning.init_gradematrix = function(Y, grades) {
                 var parts = el[i].id.split('_');
                 if (parts[0] == mt && grades[parts[1]] != undefined) {
                     el[i].value = grades[parts[1]];
-                    unsavedData=true;
+                    unsavedData = true;
                 }
             }
         }
     }
+    
+    if (Y.one('#block-ilp-populategrade') != null) {
+        Y.one('#block-ilp-populategrade').on('change', populateGrades);
+    }
 
-    Y.one('#block-ilp-populategrade').on('change', populateGrades);
+ // Event listener function for onchange of clear grades link
+    var clearGrades = function (e) {
+
+        var gds = this.getAttribute('data-clearfields');
+
+        if (gds === undefined) {
+            return;
+        }
+        var el = document.getElementsByTagName('input');
+        for (var i = 0; i < el.length; i++) {
+            if (el[i].type == 'text' && el[i].value != "" && !el[i].disabled) {
+                var parts = el[i].id.split('_');
+                if (gds.indexOf(parts[0]) > -1 && grades[parts[1]] != undefined) {
+                    el[i].value = "";
+                    unsavedData = true;
+                }
+            }
+        }
+        // Reset the "populate" grades dropdown
+        document.getElementById('block-ilp-populategrade')[0].selected = true;
+    }
+
+    if (Y.one('#block-ilp-cleargrades') != null) {
+        Y.one('#block-ilp-cleargrades').on('click', clearGrades);
+    }
+
 }
