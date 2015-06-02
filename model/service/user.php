@@ -36,6 +36,7 @@
  */
 
 require_once($CFG->dirroot.'/blocks/intelligent_learning/model/service/abstract.php');
+include_once($CFG->dirroot.'/mod/quiz/attemptlib.php');
 /**
  * User service model
  *
@@ -577,7 +578,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
     
             $user = $DB->get_record_sql($sql, $sql_param);
             if (!empty ($user)) {
-            $sections = $this->helper->connector->get_courses_where_user_is_enrolled($userid , $startDate);
+            $sections = $this->helper->connector->get_courses($user, "");
             //die(var_export($sections, false));
             foreach ($sections as $section){
             if(!empty($section->idnumber)){
