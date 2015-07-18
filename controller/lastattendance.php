@@ -1,4 +1,19 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * ILP Integration
  *
@@ -35,7 +50,7 @@ class block_intelligent_learning_controller_lastattendance extends block_intelli
             !empty($controller->get_config()->gradebookapp) and $controller->get_config()->gradebookapp == 'moodle' and
             get_config('blocks/intelligent_learning', 'showlastattendance')) {
 
-            $tabs->add('lastattendance', array('controller' => 'lastattendance', 'action' => 'edit'), NULL, 3);
+            $tabs->add('lastattendance', array('controller' => 'lastattendance', 'action' => 'edit'), null, 3);
         }
     }
 
@@ -56,7 +71,7 @@ class block_intelligent_learning_controller_lastattendance extends block_intelli
      * Create a new blank usergrade object for LDA
      */
     protected function new_usergrade($userid, $courseid) {
-        static $showlastattendance = NULL;
+        static $showlastattendance = null;
 
         if (is_null($showlastattendance)) {
             $showlastattendance = get_config('blocks/intelligent_learning', 'showlastattendance');
@@ -66,8 +81,8 @@ class block_intelligent_learning_controller_lastattendance extends block_intelli
         $usergrade->course = $courseid;
 
         if ($showlastattendance) {
-            $usergrade->lastaccess    = NULL;
-            $usergrade->neverattended = NULL;
+            $usergrade->lastaccess    = null;
+            $usergrade->neverattended = null;
         }
         return $usergrade;
     }

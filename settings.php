@@ -1,4 +1,19 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * ILP Integration
  *
@@ -57,18 +72,10 @@ if ($ADMIN->fulltree) {
     );
 
     $configs[] = new admin_setting_configselect(
-        'retentionalertlink',
-        new lang_string('retentionalertlink', 'block_intelligent_learning'),
-        new lang_string('retentionalertlinkdesc', 'block_intelligent_learning'),
-        1,
-        $yesnooptions
-    );
-
-    $configs[] = new admin_setting_configselect(
-        'dailyattendancelink',
-        new lang_string('dailyattendancelink', 'block_intelligent_learning'),
-        new lang_string('dailyattendancelinkdesc', 'block_intelligent_learning'),
-        1,
+        'gradelock',
+        new lang_string('gradelock', 'block_intelligent_learning'),
+        new lang_string('gradelockdesc', 'block_intelligent_learning'),
+        0,
         $yesnooptions
     );
 
@@ -80,12 +87,24 @@ if ($ADMIN->fulltree) {
         $yesnooptions
     );
 
-    $configs[] = new admin_setting_configselect(
-        'gradelock',
-        new lang_string('gradelock', 'block_intelligent_learning'),
-        new lang_string('gradelockdesc', 'block_intelligent_learning'),
-        0,
+     $configs[] = new admin_setting_configselect(
+        'showneverattended',
+        new lang_string('showneverattended', 'block_intelligent_learning'),
+        new lang_string('showneverattendeddesc', 'block_intelligent_learning'),
+        1,
         $yesnooptions
+    );
+
+    $options   = array(
+        'expirelabel_expiredate' => new lang_string('expirelabel_expiredate', 'block_intelligent_learning'),
+        'expirelabel_extensiondate' => new lang_string('expirelabel_extensiondate', 'block_intelligent_learning')
+    );
+    $configs[] = new admin_setting_configselect(
+        'expirelabel',
+        new lang_string('expirelabel', 'block_intelligent_learning'),
+        new lang_string('expirelabeldesc', 'block_intelligent_learning'),
+        'expirelabel_expiredate',
+        $options
     );
 
     $configs[] = new admin_setting_configselect(
@@ -119,6 +138,14 @@ if ($ADMIN->fulltree) {
         $options
     );
 
+     $configs[] = new admin_setting_configselect(
+        'gradevalidatelocalgradescheme',
+        new lang_string('gradevalidatelocalgradescheme', 'block_intelligent_learning'),
+        new lang_string('gradevalidatelocalgradeschemedesc', 'block_intelligent_learning'),
+        1,
+        $yesnooptions
+    );
+
     $configs[] = new admin_setting_intelligent_learning_extraletters();
 
     $configs[] = new admin_setting_configtext(
@@ -130,6 +157,50 @@ if ($ADMIN->fulltree) {
     );
 
     $configs[] = new admin_setting_configtext(
+        'maxnumberofdays',
+        new lang_string('maxnumberofdays', 'block_intelligent_learning'),
+        new lang_string('maxnumberofdaysdesc', 'block_intelligent_learning'),
+        '365',
+        PARAM_INT,
+        '4'
+    );
+
+    $configs[] = new admin_setting_configpasswordunmask(
+        'webservices_token',
+        new lang_string('webservices_token', 'block_intelligent_learning'),
+        new lang_string('webservices_tokendesc', 'block_intelligent_learning'),
+        ''
+    );
+
+    $configs[] = new admin_setting_configtext(
+        'webservices_ipaddresses',
+        new lang_string('webservices_ipaddresses', 'block_intelligent_learning'),
+        new lang_string('webservices_ipaddressesdesc', 'block_intelligent_learning'),
+        '',
+        PARAM_RAW,
+        40
+    );
+
+    // Colleague-only settings.
+    $configs[] = new admin_setting_heading('colleaguesection', new lang_string('colleaguesection', 'block_intelligent_learning'), null);
+
+    $configs[] = new admin_setting_configselect(
+        'retentionalertlink',
+        new lang_string('retentionalertlink', 'block_intelligent_learning'),
+        new lang_string('retentionalertlinkdesc', 'block_intelligent_learning'),
+        0,
+        $yesnooptions
+    );
+
+    $configs[] = new admin_setting_configselect(
+        'dailyattendancelink',
+        new lang_string('dailyattendancelink', 'block_intelligent_learning'),
+        new lang_string('dailyattendancelinkdesc', 'block_intelligent_learning'),
+        0,
+        $yesnooptions
+    );
+
+     $configs[] = new admin_setting_configtext(
         'retentionalertpid',
         new lang_string('retentionalertpid', 'block_intelligent_learning'),
         new lang_string('retentionalertpiddesc', 'block_intelligent_learning'),
@@ -150,22 +221,58 @@ if ($ADMIN->fulltree) {
         'ST-GBS005'
     );
 
-    $configs[] = new admin_setting_configpasswordunmask(
-        'webservices_token',
-        new lang_string('webservices_token', 'block_intelligent_learning'),
-        new lang_string('webservices_tokendesc', 'block_intelligent_learning'),
-        ''
+    // Banner-only settings.
+    $configs[] = new admin_setting_heading('bannersection', new lang_string('bannersection', 'block_intelligent_learning'), null);
+
+    $configs[] = new admin_setting_configselect(
+        'showdefaultincomplete',
+        new lang_string('showdefaultincomplete', 'block_intelligent_learning'),
+        new lang_string('showdefaultincompletedesc', 'block_intelligent_learning'),
+        0,
+        $yesnooptions
+    );
+
+    // ILP API connection.
+    $configs[] = new admin_setting_heading('livegrades', new lang_string('livegrades', 'block_intelligent_learning'), null);
+
+    $configs[] = new admin_setting_configtext(
+        'ilpapi_url',
+        new lang_string('ilpapi_url', 'block_intelligent_learning'),
+        new lang_string('ilpapi_urldesc', 'block_intelligent_learning'),
+        '',
+        PARAM_URL
     );
 
     $configs[] = new admin_setting_configtext(
-        'webservices_ipaddresses',
-        new lang_string('webservices_ipaddresses', 'block_intelligent_learning'),
-        new lang_string('webservices_ipaddressesdesc', 'block_intelligent_learning'),
-        '',
-        PARAM_RAW,
-        40
+        'ilpapi_connectionid',
+        new lang_string('ilpapi_connectionid', 'block_intelligent_learning'),
+        new lang_string('ilpapi_connectioniddesc', 'block_intelligent_learning'),
+        ''
     );
 
+    $configs[] = new admin_setting_configpasswordunmask(
+        'ilpapi_connectionpassword',
+        new lang_string('ilpapi_connectionpassword', 'block_intelligent_learning'),
+        new lang_string('ilpapi_connectionpassworddesc', 'block_intelligent_learning'),
+        ''
+    );
+
+    $configs[] = new admin_setting_configselect(
+        'ilpapi_issslcaauthority',
+        new lang_string('ilpapi_issslcaauthority', 'block_intelligent_learning'),
+        new lang_string('ilpapi_sslcawarning', 'block_intelligent_learning'),
+        0,
+        $yesnooptions
+    );
+
+    $configs[] = new admin_setting_configtext(
+        'ilpapi_certpath',
+        new lang_string('ilpapi_certpath', 'block_intelligent_learning'),
+        new lang_string('ilpapi_certexplanation', 'block_intelligent_learning'),
+        ''
+    );
+
+    // Web Services.
     $services = array('course', 'enroll', 'user', 'groups', 'groups_members');
 
     $endpoints = array();
@@ -176,8 +283,7 @@ if ($ADMIN->fulltree) {
 
     $configs[] = new admin_setting_heading('webserviceendpoints', new lang_string('webserviceendpoints', 'block_intelligent_learning'), $endpoints);
 
-// Define the config plugin so it is saved to
-// the config_plugin table then add to the settings page
+    // Define the config plugin so it is saved to the config_plugin table then add to the settings page.
     foreach ($configs as $config) {
         $config->plugin = 'blocks/intelligent_learning';
         $settings->add($config);

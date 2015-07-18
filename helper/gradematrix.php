@@ -1,4 +1,18 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 /**
  * ILP Integration
  *
@@ -30,7 +44,7 @@
 
 class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract {
 
-    protected $gradematrix = NULL;
+    protected $gradematrix = null;
 
     protected $controller = '';
 
@@ -43,6 +57,12 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
     protected $gradelock = false;
 
     protected $retentionlink = false;
+
+    protected $neverattended = false;
+
+    protected $defaultincomplete = false;
+
+    protected $expirelabel = '';
 
     protected $ilpurl = '';
 
@@ -69,12 +89,15 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
         $this->showlastattendance = $config->showlastattendance;
         $this->mtcolumns = $config->midtermgradecolumns;
         $this->gradelock = $config->gradelock;
+        $this->showdefaultincomplete = $config->showdefaultincomplete;
+        $this->neverattended = $config->showneverattended;
+        $this->expirelabel = $config->expirelabel;
 
         $this->retentionlink = $config->retentionalertlink;
         $this->retentionpid = $config->retentionalertpid;
         $this->ilpurl = $config->ilpurl;
 
-        // Need all three for retention link
+        // Need all three for retention link.
         if (empty($this->retentionlink) or empty($this->ilpurl) or empty($this->retentionpid)) {
             $this->retentionlink = false;
         }
@@ -82,7 +105,7 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
         $gradereportlink = html_writer::link("$CFG->wwwroot/grade/report/grader/index.php?id=$COURSE->id", get_string('gotogrades', 'block_intelligent_learning'));
         $graderreportlinkbox = $OUTPUT->box($gradereportlink, 'block-ilp-link-to-grades centerpara');
 
-        // Disable these for this controller
+        // Disable these for this controller.
         if ($this->controller == 'retentionalert') {
             $this->showlastattendance = false;
             $graderreportlinkbox = '';
@@ -111,22 +134,29 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
                 break;
             case 'finalgrades':
                 $form .= $this->final_grade_header();
+                if (!empty($this->showdefaultincomplete)) {
+                    $form .= $this->default_incomplete_grade_header();
+                }
                 $form .= $this->expire_date_header();
+
                 break;
         }
 
         if (!empty($this->showlastattendance)) {
             $this->tablecols++;
             $form .= html_writer::tag('th', get_string('lastattendancetableheader', 'block_intelligent_learning'), array('class' => $this->classes->thclass));
-            $form .= $this->never_attended_header();
+            if (!empty($this->neverattended)) {
+                $form .= $this->never_attended_header();
+            }
         }
+
         if (!empty($this->retentionlink)) {
             $this->tablecols++;
             $form .= html_writer::tag('th', '', array('class' => $this->classes->thclass));
         }
         $form .= '</tr>';
 
-        //now go though each student
+        // Now go though each student.
         $trodd = 'block-ilp-tr odd';
         $treven = 'block-ilp-tr even';
         $odd = true;
@@ -146,6 +176,9 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
             $form .= html_writer::start_tag('tr', $trclass);
             $form .= html_writer::start_tag('td', array('class' => 'block-ilp-td first'));
             $form .= html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'uid[]', 'value' => $usergrade->uid));
+            $form .= html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'uidnumber[]', 'value' => $usergrade->idnumber));
+            $form .= html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'ufullname[]', 'value' => $usergrade->firstname . ' ' . $usergrade->lastname));
+
             $form .= $usergrade->firstname . ' ' .  $usergrade->lastname;
             $form .= html_writer::end_tag('td');
 
@@ -159,10 +192,13 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
                     break;
                 case 'finalgrades':
                     $form .= $this->final_grade($usergrade);
+                    if (!empty($this->showdefaultincomplete)) {
+                          $form .= $this->default_incomplete($usergrade);
+                    }
                     $form .= $this->expire_date($usergrade);
                     break;
-            }  
-            
+            }
+
             if (!empty($this->showlastattendance)) {
                 $value = '';
                 $attributes = array('class' => '');
@@ -181,7 +217,7 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
                 $attributes = array_merge($attributes, array(
                     'id' => $id,
                     'type' => 'text',
-                    'size' => '8',
+                    'size' => '10',
                     'name' => $id,
                     'value' => $value,
                 ));
@@ -191,7 +227,9 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
 
                 $form .= html_writer::end_tag('td');
 
-                $form .= $this->never_attended($usergrade);
+                if (!empty($this->neverattended)) {
+                    $form .= $this->never_attended($usergrade);
+                }
             }
 
             if (!empty($this->retentionlink)) {
@@ -246,6 +284,10 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
         $form .= groups_print_course_menu($COURSE, "$CFG->wwwroot/blocks/intelligent_learning/view.php?controller=$this->controller&action=edit&courseid=$COURSE->id", true);
         $form .= html_writer::end_tag('div');
 
+        $form .= html_writer::start_tag('div', array('class' => 'block-ilp-groupselector'));
+        $form .= $this->metaenroll_print_course_menu($COURSE, "$CFG->wwwroot/blocks/intelligent_learning/view.php?controller=$this->controller&action=edit&courseid=$COURSE->id", true);
+        $form .= html_writer::end_tag('div');
+
         if (!$this->gradematrix->has_usergrades()) {
             if (groups_get_course_group($COURSE)) {
                 $form .= $OUTPUT->notification(get_string('nogradebookusersandgroups', 'block_intelligent_learning'));
@@ -272,6 +314,8 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
 
         $form .= $this->populategrade_form();
 
+        $form .= $this->cleargrades_form();
+
         $form .= html_writer::start_tag('table', array('id' => 'gmtable', 'class' => 'block-ilp-gmtable'));
 
         $form .= html_writer::start_tag('tr', array('class' => 'top'));
@@ -280,7 +324,7 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
         foreach (array('firstname', 'lastname') as $name) {
             $url = "$CFG->wwwroot/blocks/intelligent_learning/view.php?controller=$this->controller&action=edit&courseid=$COURSE->id&sort=$name&order=";
             if ($this->gradematrix->get_sort() == $name) {
-                // Add direction arrow
+                // Add direction arrow.
                 if ($this->gradematrix->get_order() == 'ASC') {
                     $url .= 'DESC';
                     $pic  = 'up';
@@ -291,13 +335,13 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
                     $alt  = s(get_string('sortdesc', 'grades'));
                 }
                 $image = $OUTPUT->pix_icon("t/$pic", $alt);
-                // Add sort in opposite direction
+                // Add sort in opposite direction.
             } else {
-                // Add sort ASC
+                // Add sort ASC.
                 $url  .= 'ASC';
                 $image = '';
             }
-            // Add separator
+            // Add separator.
             if ($name == 'lastname') {
                 $form .= ' / ';
             }
@@ -325,6 +369,7 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
 
     private function midterm_grades($usergrade) {
         $form = '';
+
         if ($this->mtcolumns > 0) {
             for ($i = 1; $i <= $this->mtcolumns; $i++) {
 
@@ -336,7 +381,6 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
                 }
 
                 $id = "mt{$i}_$usergrade->uid";
-
                 if (array_key_exists($id, $this->errors)) {
                     $class = $this->add_error_class($class);
                     $value = $this->errors[$id];
@@ -352,24 +396,25 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
         return $form;
     }
 
-
     private function final_grade($usergrade) {
 
         $value = '';
+
         $attributes = array('class' => '');
         if (!empty($usergrade->finalgrade)) {
             $value = $usergrade->finalgrade;
-            $attributes['class'] = $this->classes->submittedclass;
+            //$attributes['class'] = $this->classes->submittedclass;
 
             if ($this->gradelock) {
                 $attributes['disabled'] = 'disabled';
             }
-            
+
         }
 
         $id = "finalgrade_$usergrade->uid";
 
         if (array_key_exists($id, $this->errors)) {
+
             $attributes['class'] = $this->add_error_class($attributes['class']);
             $value = $this->errors[$id];
         }
@@ -389,6 +434,42 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
         return $form;
     }
 
+    private function default_incomplete($usergrade) {
+        $value = '';
+        $attributes = array('class' => '');
+
+        if (!empty($usergrade->incompletefinalgrade)) {
+            $value = $usergrade->incompletefinalgrade;
+            $attributes['class'] = $this->classes->submittedclass;
+        }
+
+        if (($this->gradelock) && (!empty($usergrade->finalgrade))) {
+            $attributes['disabled'] = 'disabled';
+        }
+
+        $id = "incompletefinalgrade_$usergrade->uid";
+
+        if (array_key_exists($id, $this->errors)) {
+            $attributes['class'] = $this->add_error_class($attributes['class']);
+            $value = $this->errors[$id];
+        }
+
+        $attributes = array_merge($attributes, array(
+            'id' => $id,
+            'type' => 'text',
+            'size' => '5',
+            'name' => $id,
+            'value' => $value,
+        ));
+
+        $form = html_writer::start_tag('td', array('class' => 'block-ilp-td'));
+        $form .= html_writer::empty_tag('input', $attributes);
+
+        $form .= html_writer::end_tag('td');
+
+        return $form;
+    }
+
     private function final_grade_header() {
         $form = html_writer::tag('th', get_string('finalgrade', 'block_intelligent_learning'), array('class' => $this->classes->thclass));
         $this->tablecols++;
@@ -396,8 +477,15 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
         return $form;
     }
 
+    private function default_incomplete_grade_header() {
+        $form = html_writer::tag('th', get_string('incompletefinalgrade', 'block_intelligent_learning'), array('class' => $this->classes->thclass));
+        $this->tablecols++;
+
+        return $form;
+    }
+
     private function expire_date_header() {
-        $form = html_writer::tag('th', get_string('expiredate', 'block_intelligent_learning'), array('class' => $this->classes->thclass));
+        $form = html_writer::tag('th', get_string($this->expirelabel, 'block_intelligent_learning'), array('class' => $this->classes->thclass));
         $this->tablecols++;
 
         return $form;
@@ -411,6 +499,10 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
             $value = $this->helper->date->format($usergrade->expiredate);
         }
 
+        if (($this->gradelock) && (!empty($usergrade->finalgrade))) {
+            $attributes['disabled'] = 'disabled';
+        }
+
         $id = "expiredate_$usergrade->uid";
 
         if (array_key_exists($id, $this->errors)) {
@@ -422,7 +514,7 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
             'id' => $id,
             'name' => $id,
             'value' => $value,
-            'size' => '8',
+            'size' => '10',
         ));
 
         $form = html_writer::start_tag('td', array('class' => 'block-ilp-td'));
@@ -502,25 +594,120 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
         }
 
         $options = array();
+        $populatelabel = "";
         switch ($this->controller) {
             case 'midtermgrades':
                 for ($i = 1; $i <= $this->mtcolumns; $i++) {
                     $options["mt$i"] = get_string('midterm', 'block_intelligent_learning', $i);
                 }
                 $choosestring = get_string('populatemidterm', 'block_intelligent_learning');
+                $populatelabel = get_string('populatemidtermlabel', 'block_intelligent_learning');
                 break;
 
-           case 'finalgrades':
-               $options["finalgrade"] = get_string('finalgrade', 'block_intelligent_learning');
-               $choosestring = get_string('populatefinalgrade', 'block_intelligent_learning');
-               break;
+            case 'finalgrades':
+                $options["finalgrade"] = get_string('finalgrade', 'block_intelligent_learning');
+                $choosestring = get_string('populatefinalgrade', 'block_intelligent_learning');
+                $populatelabel = get_string('populatefinalgradelabel', 'block_intelligent_learning');
+                break;
         }
 
-        $menu    = html_writer::select($options, 'populategrade', '', $choosestring, array('id' => 'block-ilp-populategrade'));
-        
-        $form .= $OUTPUT->box("$menu", 'block-ilp-gradepopulate');
+        $menu = html_writer::label($populatelabel . ' ', 'block-ilp-populategrade', false, array());
+        $menu .= html_writer::select($options, 'populategrade', '', $choosestring, array('id' => 'block-ilp-populategrade'));
+
+        $form .= $OUTPUT->box("$menu", 'block-ilp-gradepopulate groupselector');
 
         return $form;
+    }
+
+    private function cleargrades_form() {
+        global $COURSE, $OUTPUT;
+
+        $form = '';
+
+        if (!in_array($this->controller, array('midtermgrades', 'finalgrades'))) {
+            return $form;
+        }
+
+        if ($this->controller == 'midtermgrades' and $this->mtcolumns < 1) {
+            return $form;
+        }
+
+        $options = array();
+        $clearlabel = get_string('cleargradeslabel', 'block_intelligent_learning');
+        $cleardescexplanation = '';
+        $clearfields = '';
+        switch ($this->controller) {
+            case 'midtermgrades':
+                if ($this->mtcolumns > 1) {
+                    // Clear grades is not supported for multiple midterm grades.
+                    return $form;
+                }
+                $clearfields .= 'mt1';
+                $cleardescexplanation = get_string('cleargradesexplanationmidterm','block_intelligent_learning');
+                break;
+
+            case 'finalgrades':
+                if ($this->gradelock) {
+                    return $form;
+                }
+
+                $clearfields .= 'finalgrade';
+                if (!empty($this->showdefaultincomplete)) {
+                    $clearfields .= '-incompletefinalgrade';
+                }
+                $clearfields .= '-expiredate';
+                $cleardescexplanation = get_string('cleargradesexplanationfinal','block_intelligent_learning');
+                break;
+        }
+
+        $form .= html_writer::tag('p', '');
+        $form .= html_writer::start_tag('div');
+        $form .= html_writer::start_tag('div', array('class' => 'groupselector'));
+        $form .= html_writer::tag('label', get_string('cleargradesdescription', 'block_intelligent_learning'));
+        $form .= html_writer::empty_tag('input', array('type' => 'button', 'value' => $clearlabel, 'id' => 'block-ilp-cleargrades', 'data-clearfields' => $clearfields));
+        $form .= html_writer::end_tag('div');
+        $form .= html_writer::end_tag('div');
+        $form .= html_writer::tag('div', $cleardescexplanation);
+        $form .= html_writer::tag('p', '');
+        return $form;
+    }
+
+    /**
+     * Print group menu selector for course level.
+     *
+     * @category group
+     * @param stdClass $course course object
+     * @param mixed $urlroot return address. Accepts either a string or a moodle_url
+     * @param bool $return return as string instead of printing
+     * @return mixed void or string depending on $return param
+     */
+    private function metaenroll_print_course_menu($course, $urlroot, $return=false) {
+        global $USER, $OUTPUT, $DB;
+
+        $context = context_course::instance($course->id);
+        $aag = has_capability('moodle/course:enrolconfig', $context);
+
+        $output = "";
+
+        $children = $DB->get_records('enrol', array('enrol' => 'meta', 'courseid' => $course->id));
+
+        if (!empty($children) and (count($children) > 0)) {
+            $options = array();
+            $options[0] = get_string('allparticipants');
+
+            foreach ($children as $child) {
+                $childcourse = $DB->get_record('course', array('id' => $child->customint1), '*', MUST_EXIST);
+                $options[$child->id] = $childcourse->fullname;
+            }
+            $metaid = optional_param('meta', 0, PARAM_INT);
+            $select = new single_select(new moodle_url($urlroot), 'meta', $options, $metaid, null, 'selectgroup');
+            $select->label = get_string('metalink_label', 'block_intelligent_learning');
+            $output = $OUTPUT->render($select);
+        }
+
+         $output = '<div class="groupselector">'.$output.'</div>';
+
+         return $output;
     }
 
     private function require_js() {
@@ -532,7 +719,6 @@ class blocks_intelligent_learning_helper_gradematrix extends mr_helper_abstract 
         foreach ($usergrades as $usergrade) {
             if (in_array($usergrade->currentgrade->letter, $gradeletters)) {
                 $jsarray[$usergrade->uid] = $usergrade->currentgrade->letter;
-                //$jsarray[] = "$usergrade->uid: '{$usergrade->currentgrade->letter}'";
             }
         }
         $arguments = array('grades' => $jsarray);

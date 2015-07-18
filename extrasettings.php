@@ -1,4 +1,19 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * ILP Integration
  *
@@ -37,7 +52,7 @@
 class admin_setting_intelligent_learning_catdate extends admin_setting {
     /**
      * Returns current value of this setting
-     * @return mixed array or string depending on instance, NULL means not set yet
+     * @return mixed array or string depending on instance, null means not set yet
      */
     public function get_setting() {
         $config = $this->config_read($this->name);
@@ -51,7 +66,7 @@ class admin_setting_intelligent_learning_catdate extends admin_setting {
 
     /**
      * Store new setting
-     * @param mixed string or array, must not be NULL
+     * @param mixed string or array, must not be null
      * @return '' if ok, string error message otherwise
      */
     public function write_setting($data) {
@@ -79,7 +94,7 @@ class admin_setting_intelligent_learning_catdate extends admin_setting {
             }
         }
         if (!empty($config)) {
-            // Validate that all category IDs still exist
+            // Validate that all category IDs still exist.
             foreach ($config as $catid => $date) {
                 if (!$DB->record_exists('course_categories', array('id' => $catid))) {
                     unset($config[$catid]);
@@ -126,7 +141,7 @@ class admin_setting_intelligent_learning_catdate extends admin_setting {
                 '<div class="form-text defaultsnext"><input type="hidden" id="'.$this->get_id().'" name="'.$this->get_full_name().'" value="1" />'.$checkboxes.$category.
                 '<input type="text" size="15" id="'.$this->get_id().'" name="'.$this->get_full_name().'_date" />
                 <input type="submit" value="'.s(get_string('addcutoff', 'block_intelligent_learning'))."\" /> $helpbutton</div>",
-                $this->description, false, '', NULL, $query);
+                $this->description, false, '', null, $query);
     }
 }
 
