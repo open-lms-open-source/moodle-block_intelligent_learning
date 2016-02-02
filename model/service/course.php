@@ -1,4 +1,18 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 /**
  * ILP Integration
  *
@@ -24,6 +38,7 @@
 require_once($CFG->dirroot.'/blocks/intelligent_learning/model/service/abstract.php');
 require_once($CFG->dirroot.'/course/lib.php');
 require_once($CFG->dirroot.'/course/format/lib.php');
+require_once("$CFG->dirroot/enrol/meta/locallib.php");
 
 /**
  * Course Service Model
@@ -69,8 +84,9 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             throw new Exception('No idnumber passed, required');
         }
 
-        // Try to get the course that we are operating on
+        // Try to get the course that we are operating on.
         $course = false;
+
         if ($courseid = $DB->get_field('course', 'id', array('idnumber' => $data['idnumber']))) {
             $course = course_get_format($courseid)->get_course();
         }
@@ -143,15 +159,15 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             }
         }
 
-        // Apply defaults to the course object
+        // Apply defaults to the course object.
         foreach ($defaults as $key => $value) {
             if (!isset($course->$key) or (!is_numeric($course->$key) and empty($course->$key))) {
                 $course->$key = $value;
             }
         }
 
-        // Last adjustments
-        fix_course_sortorder();  // KEEP (Packs sort order)
+        // Last adjustments.
+        fix_course_sortorder();  // KEEP (Packs sort order).
         unset($course->id);
         $course->category    = $this->process_category($course);
         $course->timecreated = time();
@@ -168,13 +184,19 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             throw new Exception("Could not create new course idnumber = $course->idnumber");
         }
 
-        // Save course format options
+        // Check if this is a metacourse.
+        if (isset($data["children"])) {
+            $children = $data["children"];
+            $this->process_metacourse($course, $children);
+        }
+
+        // Save course format options.
         course_get_format($courseid)->update_course_format_options($course);
 
-        // Create the context so Moodle queries work OK
+        // Create the context so Moodle queries work OK.
         context_course::instance($courseid);
 
-        // Make sure sort order is correct and category paths are created
+        // Make sure sort order is correct and category paths are created.
         fix_course_sortorder();
 
         try {
@@ -202,7 +224,7 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
     protected function update($course, $data) {
         global $DB;
 
-        // Process category
+        // Process category.
         if (isset($data['category'])) {
             $data['category'] = $this->process_category($data);
         }
@@ -227,18 +249,23 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             }
         }
         if ($update) {
-            // Make sure this is set properly
+            // Make sure this is set properly.
             $record->id = $course->id;
             $record->timemodified = time();
 
             try {
                 $DB->update_record('course', $record);
 
-                // Save course format options
+                // Save course format options.
                 course_get_format($course->id)->update_course_format_options($record, $course);
             } catch (dml_exception $e) {
                 throw new Exception('Failed to update course with id = '.$record->id);
             }
+        }
+        // Check if this is a metacourse.
+        if (isset($data["children"])) {
+            $children = $data["children"];
+            $this->process_metacourse($course, $children);
         }
     }
 
@@ -250,7 +277,7 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
      * @throws Exception
      * @return int
      */
-    protected function process_category($course, $defaultcategory = NULL) {
+    protected function process_category($course, $defaultcategory = null) {
         global $CFG, $DB;
 
         if (is_array($course)) {
@@ -262,7 +289,7 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
                 return $course->category;
             }
         } else if (isset($course->category)) {
-            // Apply separator
+            // Apply separator.
             $category   = trim($course->category, '|');
             $categories = explode('|', $category);
 
@@ -293,7 +320,7 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             }
 
             if (!empty($category) and strtolower($category->name) == strtolower(end($categories))) {
-                // We found or created our category
+                // We found or created our category.
                 return $category->id;
             }
         }
@@ -302,5 +329,85 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             return $defaultcategory;
         }
         return $CFG->defaultrequestcategory;
+    }
+
+    /**
+     * Processes metacourse handling for the course and its children
+     *
+     * @param object|array $course External course
+     * @param object|array $children List of child courses idnumbers
+     * @throws Exception
+     * @return int
+     */
+    protected function process_metacourse($course, $children) {
+        global $CFG, $DB;
+        try {
+            if (isset($children)) {
+                $parentfullname = "";
+                $parentcategory = "";
+                $parentshortname = "";
+                $parentstartdate = time();
+
+                $childids = explode(',', $children);
+                $enrol      = enrol_get_plugin('meta');
+
+                // Make this a metacourse by adding enrollment entries for each of the child courses.
+                $metacourse = $DB->get_record('course', array('idnumber' => $course->idnumber), '*', MUST_EXIST);
+
+                $requestchildren = array();
+
+                if (!empty($children)) {
+                    // If children is set but empty, that means we are removing all children from the course; skip this.
+                    foreach ($childids as $childidnumber) {
+                        $child             = $DB->get_record('course', array('idnumber' => $childidnumber), '*', MUST_EXIST);
+                        $existingchild     = $DB->get_record('enrol', array('enrol' => 'meta', 'courseid' => $metacourse->id, 'customint1' => $child->id));
+
+                        $parentfullname .= ", " . $child->fullname;
+                        $parentstartdate = min(array($parentstartdate, $child->startdate));
+                        $parentcategory = $child->category;
+                        $parentshortname .= ", " . $child->shortname;
+
+                        // Only add if not a duplicate.
+                        if (!isset($existingchild->id)) {
+                            $eid        = $enrol->add_instance($metacourse, array('customint1' => $child->id));
+                            // Hide child - users will only interact with the parent.
+                            $child->visible = false;
+                            $DB->update_record('course', $child);
+                        }
+                        array_push($requestchildren, $child->id);
+                    }
+                }
+
+                // If there are any children that are no longer in the list, remove the meta-link.
+                $currentchildren = array();
+                $currentchildren = $DB->get_records('enrol', array('enrol' => 'meta', 'courseid' => $metacourse->id), null, '*');
+                if (count($requestchildren) != count($currentchildren)) {
+                    foreach ($currentchildren as $checkchild) {
+                        if (!in_array($checkchild->customint1, $requestchildren)) {
+                            // This child is not in the current list; remove the meta link.
+                            $eid = $enrol->delete_instance($checkchild);
+                        }
+                    }
+                }
+
+                enrol_meta_sync($metacourse->id);
+
+                // Update the course title, category and start date with the values from the children.
+                if (!empty($parentfullname) && ($parentfullname != "")) {
+                    $metacourse->fullname = ltrim($parentfullname, ", ");
+                    $metacourse->shortname = ltrim(substr($parentshortname, 0, 100), ", ");
+                    $metacourse->startdate = $parentstartdate;
+                    if ($metacourse->category == $CFG->defaultrequestcategory) {
+                        $metacourse->category = $parentcategory;
+                    }
+                    $DB->update_record('course', $metacourse);
+                }
+            }
+        } catch (Exception $e) {
+            $errormessage = "Error adding child courses $children to metacourse $course->idnumber. " . $e->getMessage();
+            debugging($errormessage);
+            throw new Exception($errormessage);
+        }
+
     }
 }

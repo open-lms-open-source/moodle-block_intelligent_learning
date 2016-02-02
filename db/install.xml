@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="blocks/intelligent_learning/db" VERSION="20110209" COMMENT="XMLDB file for Moodle blocks/intelligent_learning"
+<XMLDB PATH="blocks/intelligent_learning/db" VERSION="20150112" COMMENT="XMLDB file for Moodle blocks/intelligent_learning"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -39,7 +39,8 @@
         <FIELD NAME="neverattended" TYPE="int" LENGTH="5" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" PREVIOUS="lastaccesstimemodified" NEXT="neverattendeduserid"/>
         <FIELD NAME="neverattendeduserid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="Id of the user who last modified the neverattended field for this record" PREVIOUS="neverattended" NEXT="neverattendedtimemodified"/>
         <FIELD NAME="neverattendedtimemodified" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="Timestamp for the last time the neverattended field for this record was modified" PREVIOUS="neverattendeduserid" NEXT="timemodified"/>
-        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="When the entry was submitted" PREVIOUS="neverattendedtimemodified"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="When the entry was submitted" PREVIOUS="neverattendedtimemodified" NEXT="incompletefinalgrade"/>
+        <FIELD NAME="incompletefinalgrade" TYPE="char" LENGTH="5" NOTNULL="false" SEQUENCE="false" COMMENT="Default incomplete final grade" PREVIOUS="timemodified" />
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

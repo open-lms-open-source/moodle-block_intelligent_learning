@@ -1,4 +1,18 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 /**
  * ILP Integration
  *
@@ -30,7 +44,8 @@
 
 class block_intelligent_learning_helper_connector extends mr_helper_abstract {
 
-    public function direct() {}
+    public function direct() {
+    }
 
     /**
      *
@@ -39,7 +54,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
      */
     public function get_user($username) {
         global $DB;
-        
+
         $username = clean_param($username, PARAM_TEXT);
 
         if (!$records = $DB->get_records('user', array('username' => $username))) {
@@ -47,6 +62,25 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
         }
         if (count($records) > 1) {
             throw new Exception("Found duplicate records where username = $username in table user");
+        }
+        return current($records);
+    }
+
+    /**
+     *
+     * @param string - The user's idnumber (dirty)
+     * @return object - user record
+     */
+    public function get_user_by_id($idnumber) {
+        global $DB;
+
+        $userid = clean_param($idnumber, PARAM_TEXT);
+
+        if (!$records = $DB->get_records('user', array('idnumber' => $idnumber))) {
+            throw new Exception("Failed to lookup user idnumber = $idnumber in table user");
+        }
+        if (count($records) > 1) {
+            throw new Exception("Found duplicate records where idnumber = $idnumber in table user");
         }
         return current($records);
     }
@@ -67,14 +101,12 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
             if (!$courses = enrol_get_users_courses($user->id, true, '*')) {
                 $courses = array();
             }
-
         } else if ($courses = $DB->get_records('course', array('idnumber' => $idnumber))) {
             foreach ($courses as $course) {
                 if ($course->id == SITEID) {
                     throw new Exception("Cannot access site course (idnumber = $course->idnumber)");
                 }
                 $context = context_course::instance($course->id);
-
                 if (!$course->visible and !has_capability('moodle/course:viewhiddencourses', $context, $user->id)) {
                     throw new Exception("User (username = $user->username) cannot view hidden course (idnumber = $course->idnumber)");
                 }
@@ -85,6 +117,13 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
         } else {
             throw new Exception("Invalid course idnumber passed: $idnumber");
         }
+
+        // Exclude courses that are meta-enrollment to other courses.
+        $courses = $this->exclude_meta_enrollments($courses);
+
+        // Exclude courses that have a start date that is older than the max number of days specified in config.
+        $courses = $this->exclude_old_courses($courses);
+
         return $courses;
     }
 
@@ -97,12 +136,12 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
      * @param int $percourse Limit the number of activities per course
      * @return array
      */
-    public function get_recent_activity($timestart, $courses, $collapse = false, $percourse = NULL) {
+    public function get_recent_activity($timestart, $courses, $collapse = false, $percourse = null) {
         global $CFG, $USER, $DB;
 
         $recentactivity = array();
 
-        // Param checks
+        // Param checks.
         if (is_null($timestart) or empty($courses)) {
             return $recentactivity;
         }
@@ -121,7 +160,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
             throw new Exception('No modules are installed!');
         }
 
-        // Gather recent activity
+        // Gather recent activity.
         foreach ($courses as $course) {
             $modinfo       = get_fast_modinfo($course, $USER->id);
             $viewfullnames = has_capability('moodle/site:viewfullnames', context_course::instance($course->id));
@@ -143,16 +182,16 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
             if ($logs) {
                 $changelist = array();
                 $actions    = array('add mod', 'update mod', 'delete mod');
-                $newgones   = array(); // added and later deleted items
+                $newgones   = array(); // Added and later deleted items.
                 foreach ($logs as $key => $log) {
                     $info = explode(' ', $log->info);
                     $itemtosave = null;
 
-                    // Labels are ignored in recent activity
+                    // Labels are ignored in recent activity.
                     if ($info[0] == 'label') {
                         continue;
                     }
-                    // Check for incorrect entry
+                    // Check for incorrect entry.
                     if (count($info) != 2) {
                         continue;
                     }
@@ -160,13 +199,13 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
                     $modname    = $info[0];
                     $instanceid = $info[1];
 
-                    //INT-1735: Look for 1.9 -> 2.0 upgrade resources
+                    // INT-1735: Look for 1.9 -> 2.0 upgrade resources.
                     if ($modname === 'resource' && !isset($modinfo->instances[$modname][$instanceid])) {
                         $old = $DB->get_record('resource_old', array('oldid' => $instanceid));
 
-                        //did we find a resource that was upgraded?
+                        // Did we find a resource that was upgraded?
                         if (!empty($old)) {
-                            //yes, found an upgraded resource
+                            // Yes, found an upgraded resource.
                             $modname = $old->newmodule;
                             $instanceid = $old->newid;
                         }
@@ -187,7 +226,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
                     }
 
                     if ($log->action == 'delete mod') {
-                        // unfortunately we do not know if the mod was visible
+                        // Unfortunately we do not know if the mod was visible.
                         if (!array_key_exists($log->info, $newgones)) {
                             if ($a) {
                                 $strdeleted = get_string('deletedactivity', 'block_intelligent_learning', $a);
@@ -213,7 +252,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
                     } else {
                         if (!isset($modinfo->instances[$modname][$instanceid])) {
                             if ($log->action == 'add mod') {
-                                // do not display added and later deleted activities
+                                // Do not display added and later deleted activities.
                                 $newgones[$log->info] = true;
                             }
                             continue;
@@ -269,7 +308,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
                         }
                     }
                 }
-                // Add to main recentactivity array
+                // Add to main recentactivity array.
                 $recentactivity[$course->id] = array_values($changelist);
             }
 
@@ -311,29 +350,29 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
             }
         }
 
-        //order the recent activity
+        // Order the recent activity.
         foreach ($recentactivity as $courseid => $activities) {
-            // Reorder
+            // Reorder.
             uasort($activities, create_function('$a, $b', 'return ($a->timestamp == $b->timestamp) ? 0 : (($a->timestamp > $b->timestamp) ? -1 : 1);'));
 
             $recentactivity[$courseid] = array_values($activities);
         }
 
-        //Return only the most recent update for each activity?
+        // Return only the most recent update for each activity?
         if ($collapse) {
 
             foreach ($recentactivity as $courseid => $activities) {
                 $collapsedactivity = array();
                 $counts = array();
                 foreach ($activities as $activity) {
-                    //if this cmid is not already in the collapsed acivitiy, add it
-                    //we only want the most recent per cmid
+                    // If this cmid is not already in the collapsed acivitiy, add it.
+                    // We only want the most recent per cmid.
                     if (!array_key_exists($activity->cmid, $collapsedactivity)) {
-                        //add it
+                        // Add it.
                         $collapsedactivity[$activity->cmid] = $activity;
                     }
 
-                    //count it
+                    // Count it.
                     if (!array_key_exists($activity->cmid, $counts)) {
                         $counts[$activity->cmid] = 1;
                     } else {
@@ -341,7 +380,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
                     }
                 }
 
-                //loop through the counts and add them to the activity
+                // Loop through the counts and add them to the activity.
                 foreach ($counts as $cmid => $count) {
                     if (array_key_exists($cmid, $collapsedactivity)) {
                         $collapsedactivity[$cmid]->numberofupdates = $count;
@@ -352,7 +391,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
             }
         }
 
-        // Limit to $percourse
+        // Limit to $percourse.
         if (!is_null($percourse)) {
             if ($percourse < 0) {
                 $percourse = 10;
@@ -366,4 +405,56 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
 
         return $recentactivity;
     }
+
+    /*
+     * Excludes courses that are meta enrollments to other courses
+     * @param $courses - array of courses
+     */
+    private function exclude_meta_enrollments($courses) {
+        global $DB;
+
+        $primarycourses = array();
+        foreach ($courses as $course) {
+            $children = $DB->get_records('enrol', array('enrol' => 'meta', 'customint1' => $course->id));
+            if (count($children) > 0) {
+                continue;
+            }
+            array_push($primarycourses, $course);
+        }
+        return $primarycourses;
+    }
+
+    /*
+     * Excludes courses that have a start day older than the max specified
+     * @param $courses - array of courses
+     * @param $maxdays - maximum number of days from the start date of a class that it should stay in
+     * the list.
+     */
+    private function exclude_old_courses($courses) {
+
+        $currentcourses = array();
+        $maxdays = get_config('blocks/intelligent_learning', 'maxnumberofdays');
+
+        if (isset($maxdays) && is_numeric($maxdays) && ($maxdays > 0)) {
+            try {
+                foreach ($courses as $course) {
+                    $daysold = (time() - $course->startdate) / 86400;
+                    if ($daysold < $maxdays) {
+                        array_push($currentcourses, $course);
+                    } else {
+                        debugging("Excluding course with id $course->id from courses list because its start date " . date("Y-M-d", $course->startdate) ." is older than $maxdays days old", DEBUG_NORMAL);
+                    }
+                }
+            } catch (moodle_exception $e) {
+                // Don't stop the service because of this; log and continue.
+                debugging("Error limiting classes to max number of days. " . $e->getMessage(), DEBUG_ERROR);
+                $currentcourses = $courses;
+            }
+        } else {
+            $currentcourses = $courses;
+        }
+
+        return $currentcourses;
+    }
+
 }

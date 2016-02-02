@@ -1,4 +1,19 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * ILP Integration
  *
@@ -29,12 +44,12 @@
  *
  **/
 
-$plugin->version = 2013030500;
-$plugin->requires = 2013111803;
+$plugin->version = 2016012600;
+$plugin->requires = 2015051103;
 $plugin->component = 'block_intelligent_learning';
-$plugin->release   = '2.6.0 (Build: 20140603)';
+$plugin->release   = '2.9.3 (Build: 20160204)';
 $plugin->dependencies = array(
-    'local_mr' => 2010090201,
+    'local_mr' => 2016012600,
     'mod_assign' => ANY_VERSION,
     'mod_assignment' => ANY_VERSION,
     'mod_quiz' => ANY_VERSION,

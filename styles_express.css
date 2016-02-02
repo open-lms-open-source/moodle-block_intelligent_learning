@@ -1,0 +1,40 @@
+.block-ilp-gmtable {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.block-ilp-th {
+  background-color: lightGrey;
+}
+
+.block-ilp-gmtable tr.odd {
+  background-color: lightBlue;
+}
+
+.block-ilp-gmtable tr.even {
+  background-color: #eee;
+}
+
+.block-ilp-gmtable td.first,
+.block-ilp-gmtable th.first {
+  border-left: solid thin #000;
+}
+
+.block-ilp-gmtable th,
+.block-ilp-gmtable td.block-ilp-td {
+  border-right: solid thin #000;
+}
+
+td.block-ilp-td {
+  white-space: nowrap;
+  text-align: center;
+}
+
+.block-ilp-gmtable tr.last td {
+  border-bottom: solid thin #000;
+}
+
+.block-ilp-gmtable tr.top th {
+  border-top: solid thin #000;
+}
+
