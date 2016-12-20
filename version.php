@@ -44,7 +44,7 @@
  *
  **/
 
-$plugin->version = 2015032407;
+$plugin->version = 2015051101;
 $plugin->requires = 2013111803;
 $plugin->component = 'block_intelligent_learning';
 $plugin->release   = '2.7.0 (Build: 20150301)';
