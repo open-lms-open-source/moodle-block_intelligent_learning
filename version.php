@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * ILP Integration
+ * ILP Integration   
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,10 +44,10 @@
  *
  **/
 
-$plugin->version = 2015051101;
-$plugin->requires = 2013111803;
+$plugin->version = 2017080901;
+$plugin->requires = 2015111610;	// Moodle 3.0.10 is required
 $plugin->component = 'block_intelligent_learning';
-$plugin->release   = '2.7.0 (Build: 20150301)';
+$plugin->release   = '3.0.0 (Build: 20170809)';
 $plugin->dependencies = array(
     'local_mr' => 2010090201,
     'mod_assign' => ANY_VERSION,

@@ -333,17 +333,28 @@ class block_intelligent_learning_model_gradematrix {
 
         if (!empty($this->usergrades)) {
             $uids = array_keys($this->usergrades);
-            $grades = grade_get_course_grades($this->courseid, $uids);
             $gradeitem = grade_item::fetch_course_item($this->courseid);
+
+            if ($gradeitem->needsupdate) {
+                grade_regrade_final_grades($this->courseid);
+            }
+            $grades = grade_grade::fetch_users_grades($gradeitem, $uids);
 
             foreach ($this->usergrades as $uid => $usergrade) {
 
                 $this->usergrades[$uid]->currentgrade = new stdClass;
                 $currentgrade_realletter = '';
                 $currentgrade_letter = '';
-                if ($grades->grades[$uid]) {
-                    $currentgrade_realletter = grade_format_gradevalue($grades->grades[$uid]->grade, $gradeitem, true, GRADE_DISPLAY_TYPE_REAL_LETTER);
-                    $currentgrade_letter = grade_format_gradevalue($grades->grades[$uid]->grade, $gradeitem, true, GRADE_DISPLAY_TYPE_LETTER);
+                if (array_key_exists($uid, $grades)) {
+                    /** @var grade_grade $grade */
+                    $grade = $grades[$uid];
+
+                    $gradeitem           = clone($gradeitem);
+                    $gradeitem->grademin = $grade->get_grade_min();
+                    $gradeitem->grademax = $grade->get_grade_max();
+
+                    $currentgrade_realletter = grade_format_gradevalue($grade->finalgrade, $gradeitem, true, GRADE_DISPLAY_TYPE_REAL_LETTER);
+                    $currentgrade_letter = grade_format_gradevalue($grade->finalgrade, $gradeitem, true, GRADE_DISPLAY_TYPE_LETTER);
 
                 }
                 $this->usergrades[$uid]->currentgrade->realletter = $currentgrade_realletter;
