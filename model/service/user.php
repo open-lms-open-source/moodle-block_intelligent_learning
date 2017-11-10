@@ -756,8 +756,8 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
                                   FROM {assign} a
                                   JOIN {assign_submission} asub ON a.id = asub.assignment
                                  WHERE a.course $course_sql
-                                   AND asub.userid = :userid";
-
+                                   AND asub.userid = :userid AND asub.status='submitted'";
+        
         if ($startdate !== null) {
             $sql_param['startdate'] = $startdate;
             $sql .= " AND asub.timecreated >= :startdate";
