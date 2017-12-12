@@ -62,7 +62,6 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
         'format',
         'showgrades',
         'startdate',
-        'numsections',
         'visible',
         'groupmode',
         'groupmodeforce',
@@ -143,7 +142,6 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             'summary'        => get_string('defaultcoursesummary'),
             'format'         => 'weeks',
             'guest'          => 0,
-            'numsections'    => 10,
             'idnumber'       => '',
             'newsitems'      => 5,
             'showgrades'     => 1,
@@ -297,7 +295,10 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             foreach ($categories as $catname) {  // Meow!
                 $depth++;
 
-                if ($category = $DB->get_record('course_categories', array('name' => $catname, 'parent' => $parentid))) {
+                //if ($category = $DB->get_record('course_categories', array('name' => $catname, 'parent' => $parentid))) {
+                //    $parentid = $category->id;
+                if ($coursecategories = $DB->get_records('course_categories', array('name' => $catname, 'parent' => $parentid))) {
+                	$category = array_shift($coursecategories);
                     $parentid = $category->id;
                 } else {
                     $category = new stdClass();

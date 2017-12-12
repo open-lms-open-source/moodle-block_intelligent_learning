@@ -23,7 +23,6 @@ class blocks_intelligent_learning_model_service_course_test extends advanced_tes
             'format'         => 'weeks',
             'showgrades'     => '1',
             'startdate'      => time() - (5 * DAYSECS),
-            'numsections'    => '7',
             'visible'        => '1',
             'groupmode'      => '0',
             'groupmodeforce' => '0',
@@ -65,7 +64,7 @@ class blocks_intelligent_learning_model_service_course_test extends advanced_tes
 
         $data = array(
             'summary' => 'blocks_intelligent_phpunittest',
-            'numsections' => 20,
+            'showgrades' => '0'
         );
 
         $reflection->invoke($service, $course, $data);
@@ -78,8 +77,8 @@ class blocks_intelligent_learning_model_service_course_test extends advanced_tes
         }
     }
 
-    public function test_update_numsections_omitted() {
-        $course = $this->getDataGenerator()->create_course(array('numsections' => 20));
+    public function test_update_showgrades_omitted() {
+        $course = $this->getDataGenerator()->create_course(array('showgrades' => '0'));
 
         $server   = $this->getMockForAbstractClass('mr_server_abstract', array(), '', false);
         $response = $this->getMockForAbstractClass('mr_server_response_abstract', array(), '', false);
@@ -90,17 +89,17 @@ class blocks_intelligent_learning_model_service_course_test extends advanced_tes
         $reflection->setAccessible(true);
 
         $data = array(
-            'summary' => 'blocks_intelligent_phpunittest',
+            'summary' => 'blocks_intelligent_phpunittest'
         );
 
         $reflection->invoke($service, $course, $data);
 
         $updatedcourse = course_get_format($course->id)->get_course();
-        $this->assertEquals(20, $updatedcourse->numsections);
+        $this->assertEquals('0', $updatedcourse->showgrades);
     }
 
-    public function test_update_numsections_only() {
-        $course = $this->getDataGenerator()->create_course(array('numsections' => 10));
+    public function test_update_showgrades_only() {
+        $course = $this->getDataGenerator()->create_course(array('showgrades' => '1'));
 
         $server   = $this->getMockForAbstractClass('mr_server_abstract', array(), '', false);
         $response = $this->getMockForAbstractClass('mr_server_response_abstract', array(), '', false);
@@ -111,13 +110,13 @@ class blocks_intelligent_learning_model_service_course_test extends advanced_tes
         $reflection->setAccessible(true);
 
         $data = array(
-            'numsections' => '20',
+            'showgrades' => '0',
         );
 
         $reflection->invoke($service, $course, $data);
 
         $updatedcourse = course_get_format($course->id)->get_course();
-        $this->assertEquals(20, $updatedcourse->numsections);
+        $this->assertEquals('0', $updatedcourse->showgrades);
     }
 
     public function test_handle_create() {

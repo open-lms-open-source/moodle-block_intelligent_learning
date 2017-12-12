@@ -101,7 +101,12 @@ class blocks_intelligent_learning_model_service_enrolments extends blocks_intell
         $enrol->add_instance($courseobj);
 
         // Get the manual enrol instance.
-        $instance = $DB->get_record('enrol', array('courseid' => $courseobj->id, 'enrol' => 'manual'), '*', MUST_EXIST);
+        //$instance = $DB->get_record('enrol', array('courseid' => $courseobj->id, 'enrol' => 'manual'), '*', MUST_EXIST);
+    	if ($instances = $DB->get_records('enrol', array('courseid'=>$courseobj->id, 'enrol'=>'manual'))) {
+        	$instance = array_shift($instances);
+        } else {
+            throw new Exception('Manual enrollment instance does not exist');
+        }
 
         switch ($action) {
             case 'add':
