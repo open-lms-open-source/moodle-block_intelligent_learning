@@ -65,6 +65,8 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
         'visible',
         'groupmode',
         'groupmodeforce',
+        'enddate',
+        'automaticenddate',
     );
 
     /**
@@ -148,6 +150,7 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             'groupmode'      => 0,
             'groupmodeforce' => 0,
             'visible'        => 1,
+            'automaticenddate'	=> 1,
         );
 
         $courseconfigs = get_config('moodlecourse');
@@ -162,6 +165,11 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             if (!isset($course->$key) or (!is_numeric($course->$key) and empty($course->$key))) {
                 $course->$key = $value;
             }
+        }
+        
+        // If data contains a valid end date then disable the Automatic End Date setting
+        if (isset($course->enddate) and is_numeric($course->enddate) and $course->enddate > 0) {
+        	$course->automaticenddate = 0;
         }
 
         // Last adjustments.
@@ -185,7 +193,12 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
         // Check if this is a metacourse.
         if (isset($data["children"])) {
             $children = $data["children"];
-            $this->process_metacourse($course, $children);
+            $metacourse = $this->process_metacourse($course, $children);
+            
+            //if parent course is assigned a valid end date, turn off auto end date setting
+            if (!is_null($metacourse) and property_exists($metacourse, 'automaticenddate')) {
+            	$course->automaticenddate = $metacourse->automaticenddate;
+            }
         }
 
         // Save course format options.
@@ -342,12 +355,15 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
      */
     protected function process_metacourse($course, $children) {
         global $CFG, $DB;
+        $metacourse = null;
         try {
             if (isset($children)) {
                 $parentfullname = "";
                 $parentcategory = "";
                 $parentshortname = "";
                 $parentstartdate = time();
+                $parentenddate = strtotime('1970-01-01');
+                $parentautomaticenddate = 1;
 
                 $childids = explode(',', $children);
                 $enrol      = enrol_get_plugin('meta');
@@ -367,6 +383,16 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
                         $parentstartdate = min(array($parentstartdate, $child->startdate));
                         $parentcategory = $child->category;
                         $parentshortname .= ", " . $child->shortname;
+                        //Add latest child course end date to parent, if end date exists 
+                        if (property_exists($child, 'enddate')) {
+                        	$parentenddate = max(array($parentenddate, $child->enddate));
+                        	
+                        	//if auto end date setting not turned off already and start/end dates don't match
+                        	//then turn setting off
+			            	if ($parentautomaticenddate == 1 and (($child->enddate - $child->startdate) > (24*60*60))) {
+			            		$parentautomaticenddate = 0; 
+			            	}
+                        }
 
                         // Only add if not a duplicate.
                         if (!isset($existingchild->id)) {
@@ -401,6 +427,10 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
                     if ($metacourse->category == $CFG->defaultrequestcategory) {
                         $metacourse->category = $parentcategory;
                     }
+        			if (property_exists($metacourse, 'enddate')) {
+                    	$metacourse->enddate = $parentenddate;
+                    	$metacourse->automaticenddate = $parentautomaticenddate;
+                    }
                     $DB->update_record('course', $metacourse);
                 }
             }
@@ -409,6 +439,8 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             debugging($errormessage);
             throw new Exception($errormessage);
         }
+        
+        return $metacourse;
 
     }
 }

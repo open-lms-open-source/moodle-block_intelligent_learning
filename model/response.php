@@ -523,4 +523,19 @@ class blocks_intelligent_learning_model_response extends mr_server_response_abst
 
         return $this->standard($response);
     }
+
+    /**
+     * Service: coursecategories
+     * Method:  handle
+     *
+     * @param object $coursecategories Course Category object
+     * @return DOMDocument
+     */
+    public function coursecategories_handle($coursecategories) {
+        return $this->standard(array('coursecategory' => array(
+            'id' => $coursecategories->id,
+            'name' => $coursecategories->name,
+            'parent' => $coursecategories->parent,
+        )));
+    }
 }
