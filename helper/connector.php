@@ -258,8 +258,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
                             continue;
                         }
                         $cm = $modinfo->instances[$modname][$instanceid];
-                        if (!$cm->uservisible && (empty($cm->showavailability) ||
-                      empty($cm->availableinfo))) {
+                        if (!$cm->uservisible && empty($cm->availableinfo)) {
                             continue;
                         }
 
@@ -314,8 +313,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
 
             $accessible = array();
             foreach ($modinfo->cms as $cm) {
-                if (!$cm->uservisible && (empty($cm->showavailability) ||
-                      empty($cm->availableinfo))) {
+                if (!$cm->uservisible && empty($cm->availableinfo)) {
                     continue;
                 }
                 $lib = "$CFG->dirroot/mod/$cm->modname/lib.php";

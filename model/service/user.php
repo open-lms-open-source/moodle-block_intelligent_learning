@@ -222,9 +222,8 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             // Unset hidden activities.
             foreach ($activities as $key => $activity) {
                 // Check to see if the activity is visible to the user.
-                if (empty($modinfo->cms[$activity->cmid]) or (!$modinfo->cms[$activity->cmid]->uservisible &&
-                    (empty($modinfo->cms[$activity->cmid]->showavailability) ||
-                      empty($modinfo->cms[$activity->cmid]->availableinfo)))) {
+                if (empty($modinfo->cms[$activity->cmid]) || (!$modinfo->cms[$activity->cmid]->uservisible &&
+                    empty($modinfo->cms[$activity->cmid]->availableinfo))) {
                     unset($activities[$key]);
                     continue;
                 }
@@ -756,7 +755,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
                                   FROM {assign} a
                                   JOIN {assign_submission} asub ON a.id = asub.assignment
                                  WHERE a.course $course_sql
-                                   AND asub.userid = :userid";
+                                   AND asub.userid = :userid AND asub.status='submitted'";
 
         if ($startdate !== null) {
             $sql_param['startdate'] = $startdate;
