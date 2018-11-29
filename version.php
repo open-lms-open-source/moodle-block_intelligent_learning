@@ -40,14 +40,15 @@
  * ILP Integration version file
  *
  * @author Sam Chaffee
+ * @author Ellucian
  * @package block_intelligent_learning
  *
  **/
 
-$plugin->version = 2018011102;
+$plugin->version = 2018110101;
 $plugin->requires = 2015111610;	// Moodle 3.0.10 is required
 $plugin->component = 'block_intelligent_learning';
-$plugin->release   = '3.0.1 (Build: 2018011102)';
+$plugin->release   = '3.0.2 (Build: 2018110101)';
 $plugin->dependencies = array(
     'local_mr' => 2010090201,
     'mod_assign' => ANY_VERSION,

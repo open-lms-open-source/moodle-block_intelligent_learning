@@ -45,6 +45,7 @@ require_once("$CFG->dirroot/enrol/meta/locallib.php");
  *
  * @author Mark Nielsen
  * @author Sam Chaffee
+ * @author Ellucian
  * @package block_intelligent_learning
  */
 class blocks_intelligent_learning_model_service_course extends blocks_intelligent_learning_model_service_abstract {
@@ -62,6 +63,7 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
         'format',
         'showgrades',
         'startdate',
+        'numsections',
         'visible',
         'groupmode',
         'groupmodeforce',
@@ -144,6 +146,7 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             'summary'        => get_string('defaultcoursesummary'),
             'format'         => 'weeks',
             'guest'          => 0,
+            'numsections'	 => 10,
             'idnumber'       => '',
             'newsitems'      => 5,
             'showgrades'     => 1,
@@ -156,7 +159,7 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
         $courseconfigs = get_config('moodlecourse');
         if (!empty($courseconfigs)) {
             foreach ($courseconfigs as $name => $value) {
-                $defaults[$name] = $value;
+				$defaults[$name] = $value;
             }
         }
 
@@ -183,12 +186,10 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
         if (isset($course->idnumber)) {
             $course->idnumber = substr($course->idnumber, 0, 100);
         }
-
-        try {
-            $courseid = $DB->insert_record('course', $course);
-        } catch (dml_exception $e) {
-            throw new Exception("Could not create new course idnumber = $course->idnumber");
-        }
+		
+		//call the library function to create the course since that will take care of creating the sections
+		$createdCourse = create_course($course);
+		$courseid = $createdCourse->id;
 
         // Check if this is a metacourse.
         if (isset($data["children"])) {
@@ -246,7 +247,7 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             if (!in_array($key, $this->coursefields)) {
                 continue;
             }
-            if ($key != 'id' and isset($course->$key) and $course->$key != $value) {
+            if ($key != 'id' and $key != 'visible' and isset($course->$key) and $course->$key != $value) {
                 switch ($key) {
                     case 'idnumber':
                     case 'shortname':
@@ -306,6 +307,9 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
 
             $parentid = $depth = 0;
             foreach ($categories as $catname) {  // Meow!
+            	if (empty($catname))
+            		continue;
+            		
                 $depth++;
 
                 //if ($category = $DB->get_record('course_categories', array('name' => $catname, 'parent' => $parentid))) {
