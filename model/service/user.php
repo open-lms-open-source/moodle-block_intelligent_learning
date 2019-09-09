@@ -592,21 +592,35 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             $result['firstname'] = $user->firstname;
             $result['lastname'] = $user->lastname;
             $result['email'] = $user->email;
+        
+	        //Use legacy logging if selected or standard logging
+	        $manager = get_log_manager();
+			$allreaders = $manager->get_readers();
+			if (isset($allreaders['logstore_legacy'])) {
+	    		$reader = $allreaders['logstore_legacy'];
+	    	} else {
+	        	$reader = reset($allreaders);
+	    	}
+	    	
+	    	// If reader is not a sql_internal_table_reader and not legacy store then return.
+	    	if (!($reader instanceof \core\log\sql_internal_table_reader) && !($reader instanceof logstore_legacy\log\store)) {
+	        	throw new Exception('Either standard or legacy logging needs to be set up.');
+	    	}
 
             $result['AssessmentsBegun'] = self :: get_count_assessments_begun($user->id, $courses, $startDate, $endDate);
             $result['AssessmentsFinished'] = self :: get_count_assessments_finished($user->id, $courses, $startDate, $endDate);
 
-            $result['AssignmentsRead'] = self :: get_assignments_read($user->id, $courses, $startDate, $endDate);
+            $result['AssignmentsRead'] = self :: get_assignments_read($user->id, $courses, $startDate, $endDate, $reader);
             $result['AssignmentsSubmitted'] = self :: get_assignments_submissions($user->id, $courses, $startDate, $endDate);
 
-            $result['ContentPagesViewed'] = self :: get_count_contentpages_viewed($user->id, $courses, $startDate, $endDate);
+            $result['ContentPagesViewed'] = self :: get_count_contentpages_viewed($user->id, $courses, $startDate, $endDate, $reader);
 
             $result['DiscussionPostsCreated'] = self :: get_count_forum_posts($user->id, $courses, $startDate, $endDate);
-            $result['DiscussionPostsRead'] = self :: get_count_forum_posts_read($user->id, $courses, $startDate, $endDate);
+            $result['DiscussionPostsRead'] = self :: get_count_forum_posts_read($user->id, $courses, $startDate, $endDate, $reader);
 
-            $result['NumberCMSSessions'] = self :: get_count_sessions($user->id, $courses, $startDate, $endDate);
+            $result['NumberCMSSessions'] = self :: get_count_sessions($user->id, $courses, $startDate, $endDate, $reader);
 
-            $result['CalendarEntriesAdded'] = self :: get_count_calendar_added($user->id, $courses, $startDate, $endDate);
+            $result['CalendarEntriesAdded'] = self :: get_count_calendar_added($user->id, $courses, $startDate, $endDate, $reader);
             
             
             //die(var_export($result , true));
@@ -630,28 +644,43 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
      * @param int   $enddate
      * @return int
      */
-    private static function get_count_calendar_added($userid, array $courses, $startdate = null, $enddate = null) {
+    private static function get_count_calendar_added($userid, array $courses, $startdate = null, $enddate = null, $reader) {
         global $DB;
+	    if ($reader instanceof logstore_legacy\log\store) {
+	    	$coursecol = 'course';
+	    	$timecol = 'time';
+	    	$modulecol = 'module';
+	    	$moduleval = 'calendar';
+	    	$actionval = 'add';
+	    	$logtable = 'log';
+	    } else {
+	    	$coursecol = 'courseid';
+	    	$timecol = 'timecreated';
+	    	$modulecol = 'target';
+	    	$moduleval = 'calendar_event';
+	    	$actionval = 'created';
+	    	$logtable = $reader->get_internal_log_table_name();
+	    }
         $sql_param = array ();
         list ($user_sql, $sql_param1) = $DB->get_in_or_equal($userid, SQL_PARAMS_NAMED);
         $sql_param = array_merge($sql_param, $sql_param1);
         $select = "(userid $user_sql)";
-        $select .= " AND (module='calendar') AND (action='add')";
+        $select .= " AND ($modulecol ='$moduleval') AND (action='$actionval')";
         if (empty ($courses)) {
             list ($course_sql, $sql_param2) = $DB->get_in_or_equal($courses, SQL_PARAMS_NAMED);
             $sql_param = array_merge($sql_param, $sql_param2);
-            $select .= " AND (course $course_sql)";
+            $select .= " AND ($coursecol $course_sql)";
         }
         if ($startdate !== null) {
             $sql_param['startdate'] = $startdate;
-            $select .= " AND (time >= :startdate)";
+            $select .= " AND ($timecol >= :startdate)";
         }
         if (($enddate !== null) && ($enddate >= $startdate)) {
             $sql_param['enddate'] = $enddate +DAYSECS;
-            $select .= " AND (time < :enddate)";
+            $select .= " AND ($timecol < :enddate)";
         }
 
-        $result = $DB->count_records_select('log', $select, $sql_param);
+        $result = $DB->count_records_select($logtable, $select, $sql_param);
         return $result;
     }
 
@@ -756,7 +785,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
                                   JOIN {assign_submission} asub ON a.id = asub.assignment
                                  WHERE a.course $course_sql
                                    AND asub.userid = :userid AND asub.status='submitted'";
-        
+
         if ($startdate !== null) {
             $sql_param['startdate'] = $startdate;
             $sql .= " AND asub.timecreated >= :startdate";
@@ -779,7 +808,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
     *
     * @return integer
     */
-    private static function get_assignments_read($userid, array $courses, $startdate = null, $enddate = null) {
+    private static function get_assignments_read($userid, array $courses, $startdate = null, $enddate = null, $reader) {
 
         global $DB;
 
@@ -788,20 +817,32 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
         list ($course_sql, $sql_param2) = $DB->get_in_or_equal($courses, SQL_PARAMS_NAMED);
         $sql_param = array_merge($sql_param, $sql_param2);
 
-        $sql = "SELECT COUNT(DISTINCT(cmid))
-                                FROM {log} l
-                               WHERE l.course $course_sql
-                                 AND l.module = 'assign'
-                                 AND l.action = 'view'
-                                 AND l.userid = :userid";
+	    if ($reader instanceof logstore_legacy\log\store) {
+	    	$timecol = 'time';
+	        $sql = "SELECT COUNT(DISTINCT(cmid))
+	                                FROM {log} l
+	                               WHERE l.course $course_sql
+	                                 AND l.module = 'assign'
+	                                 AND l.action = 'view'
+	                                 AND l.userid = :userid";
+		} else {
+	    	$timecol = 'timecreated';
+	    	$logtable = $reader->get_internal_log_table_name();
+	        $sql = "SELECT COUNT(DISTINCT(contextinstanceid))
+	                                FROM {".$logtable."} l
+	                               WHERE l.courseid $course_sql
+	                                 AND l.component = 'mod_assign'
+	                                 AND l.action = 'viewed'
+	                                 AND l.userid = :userid";
+		}
 
         if ($startdate !== null) {
             $sql_param['startdate'] = $startdate;
-            $sql .= " AND l.time >= :startdate";
+            $sql .= " AND l.$timecol >= :startdate";
         }
         if (($enddate !== null) && ($enddate >= $startdate)) {
             $sql_param['enddate'] = $enddate +DAYSECS;
-            $sql .= " AND l.time < :enddate";
+            $sql .= " AND l.$timecol < :enddate";
         }
 
         return $DB->count_records_sql($sql, $sql_param);
@@ -817,7 +858,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
     *
     * @return integer
     */
-    private static function get_count_contentpages_viewed($userid, array $courses, $startdate = null, $enddate = null) {
+    private static function get_count_contentpages_viewed($userid, array $courses, $startdate = null, $enddate = null, $reader) {
 
         global $DB;
 
@@ -826,21 +867,35 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
         list ($course_sql, $sql_param2) = $DB->get_in_or_equal($courses, SQL_PARAMS_NAMED);
         $sql_param = array_merge($sql_param, $sql_param2);
 
-        $sql = "SELECT COUNT(DISTINCT(cmid))
-                                        FROM {log} l
-                                        JOIN {modules} m ON m.name = l.module
-                                        JOIN {course_modules} cm ON cm.module = m.id AND cm.id = l.cmid
-                                       WHERE cm.course $course_sql
-                                         AND l.action LIKE '%view%'
-                                         AND l.userid = :userid";
+	    if ($reader instanceof logstore_legacy\log\store) {
+	    	$timecol = 'time';
+        	$sql = "SELECT COUNT(DISTINCT(cmid))
+                    FROM {log} l
+                    JOIN {modules} m ON m.name = l.module
+                    JOIN {course_modules} cm ON cm.module = m.id AND cm.id = l.cmid
+                   	WHERE cm.course $course_sql
+                    AND l.action LIKE '%view%'
+                    AND l.userid = :userid";
+		} else {
+	    	$timecol = 'timecreated';
+	    	$logtable = $reader->get_internal_log_table_name();
+	        $sql = "SELECT COUNT(DISTINCT(contextinstanceid))
+                    FROM {".$logtable."} l
+                    JOIN {modules} m ON l.component = 'mod_' + m.name
+                    JOIN {course_modules} cm ON cm.module = m.id AND cm.id = l.contextinstanceid
+                   	WHERE cm.course $course_sql
+                    AND l.action LIKE '%view%'
+                    AND l.userid = :userid";
+		}
+
 
         if ($startdate !== null) {
             $sql_param['startdate'] = $startdate;
-            $sql .= " AND l.time >= :startdate";
+            $sql .= " AND l.$timecol >= :startdate";
         }
         if (($enddate !== null) && ($enddate >= $startdate)) {
             $sql_param['enddate'] = $enddate +DAYSECS;
-            $sql .= " AND l.time < :enddate";
+            $sql .= " AND l.$timecol < :enddate";
         }
 
         return $DB->count_records_sql($sql, $sql_param);
@@ -893,7 +948,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
     *
     * @return integer
     */
-    private static function get_count_forum_posts_read($userid, array $courses, $startdate = null, $enddate = null) {
+    private static function get_count_forum_posts_read($userid, array $courses, $startdate = null, $enddate = null, $reader) {
 
         global $DB;
 
@@ -902,20 +957,33 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
         list ($course_sql, $sql_param2) = $DB->get_in_or_equal($courses, SQL_PARAMS_NAMED);
         $sql_param = array_merge($sql_param, $sql_param2);
 
-        $sql = "SELECT COUNT(DISTINCT(info))
-                                    FROM {log} l
-                                   WHERE l.course $course_sql
-                                     AND l.module = 'forum'
-                                     AND l.action = 'view discussion'
-                                     AND l.userid = :userid";
+	    if ($reader instanceof logstore_legacy\log\store) {
+	    	$timecol = 'time';
+	        $sql = "SELECT COUNT(DISTINCT(info))
+					FROM {log} l
+					WHERE l.course $course_sql
+					AND l.module = 'forum'
+					AND l.action = 'view discussion'
+					AND l.userid = :userid";
+		} else {
+	    	$timecol = 'timecreated';
+	    	$logtable = $reader->get_internal_log_table_name();
+	        $sql = "SELECT COUNT(DISTINCT(objectid))
+					FROM {".$logtable."} l
+					WHERE l.courseid $course_sql
+					AND l.component = 'mod_forum'
+					AND l.target = 'discussion'
+					AND l.action = 'viewed'
+					AND l.userid = :userid";
+		}
 
         if ($startdate !== null) {
             $sql_param['startdate'] = $startdate;
-            $sql .= " AND l.time >= :startdate";
+            $sql .= " AND l.$timecol >= :startdate";
         }
         if (($enddate !== null) && ($enddate >= $startdate)) {
             $sql_param['enddate'] = $enddate +DAYSECS;
-            $sql .= " AND l.time < :enddate";
+            $sql .= " AND l.$timecol < :enddate";
         }
 
         return $DB->count_records_sql($sql, $sql_param);
@@ -931,17 +999,31 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
     *
     * @return integer
     */
-    private static function get_count_sessions($userid, $courses, $startdate = null, $enddate = null) {
+    private static function get_count_sessions($userid, $courses, $startdate = null, $enddate = null, $reader) {
 
         global $DB;
 
-        $sqlr = array (
-            'userid' => $userid,
-            'course' => $courses,
-            'module' => 'course',
-            'action' => 'view',
-            
-        );
+	    if ($reader instanceof logstore_legacy\log\store) {
+	    	$timecol = 'time';
+	    	$logtable = 'log';
+	        $sqlr = array (
+	            'userid' => $userid,
+	            'course' => $courses,
+	            'module' => 'course',
+	            'action' => 'view',
+	            
+	        );
+		} else {
+	    	$timecol = 'timecreated';
+	    	$logtable = $reader->get_internal_log_table_name();
+	        $sqlr = array (
+	            'userid' => $userid,
+	            'courseid' => $courses,
+	            'target' => 'course',
+	            'action' => 'viewed',	            
+	        );
+	    }
+	    
         $sql_params = array ();
         $where = '';
         foreach ($sqlr as $param => $value) {
@@ -958,13 +1040,13 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
 
         if ($startdate !== null) {
             $sql_params['startdate'] = $startdate;
-            $where .= " AND time >= :startdate";
+            $where .= " AND $timecol >= :startdate";
         }
         if (($enddate !== null) && ($enddate >= $startdate)) {
             $sql_params['enddate'] = $enddate +DAYSECS;
-            $where .= " AND time < :enddate";
+            $where .= " AND $timecol < :enddate";
         }
-        return $DB->count_records_select('log', $where, $sql_params);
+        return $DB->count_records_select($logtable, $where, $sql_params);
     }
     
     /**
@@ -1123,28 +1205,87 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
 
     public function get_user_activity_logs($userIds = NULL, $sectionIds = NULL, $startDate = NULL, $endDate = NULL) {
         global $DB;
-
+        
+        //Use legacy logging if selected or standard logging
+        $manager = get_log_manager();
+		$allreaders = $manager->get_readers();
+		if (isset($allreaders['logstore_legacy'])) {
+    		$reader = $allreaders['logstore_legacy'];
+    	} else {
+        	$reader = reset($allreaders);
+    	}
+    	
+    	// If reader is not a sql_internal_table_reader and not legacy store then return.
+    	if (!($reader instanceof \core\log\sql_internal_table_reader) && !($reader instanceof logstore_legacy\log\store)) {
+        	throw new Exception('Either standard or legacy logging needs to be set up.');
+    	}
         
         //Note: A unique ID must always be the first column in the result.  Otherwise $DV->get_records_sql 
         //      will group up the results by whatever the first column is.
-        $sql = "select 
-                            {log}.id,
-                            {log}.course, 
-                            {log}.userid,
-                            {log}.time, 
-                            {user}.idnumber as UserID, 
-                            {log}.module, 
-                            {course}.idnumber as CourseID, 
-                            {log}.action
-        
-                            from 
-                            {log},
-                            {user},
-                            {course}
-        
-                            where
-                            {user}.id = {log}.userid and
-                            {log}.course = {course}.id ";
+        $unionsql = " union ";
+	    if ($reader instanceof logstore_legacy\log\store) {
+	    	$timecol = 'time';
+	    	$logtable = 'log';
+	    	$sql = "select 
+	                    l.id,
+	                    l.course, 
+	                    l.userid,
+	                    l.time, 
+	                    u.idnumber as UserID, 
+	                    l.module, 
+	                    c.idnumber as CourseID, 
+	                    l.action
+	
+	                    from 
+	                    {log} l,
+	                    {user} u,
+	                    {course} c
+	
+	                    where
+	                    u.id = l.userid and
+	                    l.course = c.id ";
+		} else {
+	    	$timecol = 'timecreated';
+	    	$logtable = $reader->get_internal_log_table_name();
+	    	$sql = "select 
+	                    l.id,
+	                    l.courseid as course, 
+	                    l.userid,
+	                    l.timecreated as time, 
+	                    u.idnumber as UserID, 
+	                    l.target, 
+	                    c.idnumber as CourseID, 
+	                    l.action,
+	                    l.component
+	
+	                    from 
+	                    {".$logtable."} l,
+	                    {user} u,
+	                    {course} c
+	
+	                    where
+	                    u.id = l.userid and
+	                    l.courseid = c.id ";
+	    	$unionsql .= "select 
+	                    l.id,
+	                    l.courseid as course, 
+	                    l.userid,
+	                    l.timecreated as time, 
+	                    u.idnumber as UserID, 
+	                    l.target, 
+	                    null as CourseID, 
+	                    l.action,
+	                    l.component
+	
+	                    from 
+	                    {".$logtable."} l,
+	                    {user} u
+	
+	                    where
+	                    u.id = l.userid and
+	                    l.courseid = 0 and 
+	                    l.action in ('loggedin', 'loggedout') ";
+	    }               
 
         // Start to add additional conditions to the query
         $addAnd = " and ";
@@ -1166,7 +1307,8 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
                 $UserOutput .= "'" . clean_param($id, PARAM_TEXT) . "'";
             }
 
-            $sql .= $addAnd . " {user}.idnumber in ( $UserOutput ) ";
+            $sql .= $addAnd . " u.idnumber in ( $UserOutput ) ";
+            $unionsql .= $addAnd . " u.idnumber in ( $UserOutput ) ";
         }
 
         // Add sectionIds to the query
@@ -1185,18 +1327,27 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
                 $SectionOutput .= "'" . clean_param($id, PARAM_TEXT) . "'";
             }
 
-            $sql .= $addAnd . " {course}.idnumber in ( $SectionOutput ) ";
+            $sql .= $addAnd . " c.idnumber in ( $SectionOutput ) ";
         }
 
         //Add the start date to the query
         if ($startDate != null) {
-            $sql .= $addAnd . " {log}.time > ? ";
+            $sql .= $addAnd . " l.$timecol > ? ";
             $params[] = $startDate;
         }
 
         //Add the end date to the query
         if ($endDate != null) {
-            $sql .= $addAnd . " {log}.time < ?  ";
+            $sql .= $addAnd . " l.$timecol < ?  ";
+            $params[] = $endDate;
+        }
+        if ($logtable != 'log' && $startDate != null) {
+            $unionsql .= $addAnd . " l.$timecol > ? ";
+            $params[] = $startDate;
+        }
+
+        if ($logtable != 'log' && $endDate != null) {
+            $unionsql .= $addAnd . " l.$timecol < ?  ";
             $params[] = $endDate;
         }
 
@@ -1205,6 +1356,9 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             throw new Exception("Error, atleast one parameter is required");
         }
 
+		if ($logtable != 'log') {
+			$sql .= $unionsql;
+		}
         $data = $DB->get_records_sql($sql, $params);
 
         $activityresponse = array ();
@@ -1215,7 +1369,8 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
                     'course' => $item->course,
                     'userid' => $item->userid,
                     'time' => $item->time,
-                    'module' => $item->module,
+                    'module' => $logtable == 'log'? $item->module : 
+                    	($item->component==='core'? $item->target: str_replace('mod_', '', $item->component)),
                     'courseid' => $item->courseid,
                     'action' => $item->action
                 )

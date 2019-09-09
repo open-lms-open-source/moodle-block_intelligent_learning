@@ -159,6 +159,43 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
         } else {
             throw new Exception('No modules are installed!');
         }
+        
+        //Use legacy logging if selected or standard logging
+        $manager = get_log_manager();
+		$allreaders = $manager->get_readers();
+		if (isset($allreaders['logstore_legacy'])) {
+    		$reader = $allreaders['logstore_legacy'];
+    	} else {
+        	$reader = reset($allreaders);
+    	}
+    	
+    	// If reader is not a sql_internal_table_reader and not legacy store then return.
+    	if (!($reader instanceof \core\log\sql_internal_table_reader) && !($reader instanceof logstore_legacy\log\store)) {
+        	throw new Exception('Either standard or legacy logging needs to be set up.');
+    	}
+    	
+	    if ($reader instanceof logstore_legacy\log\store) {
+	        $sql = "
+	        	SELECT l.*, u.firstname, u.lastname, u.picture, u.middlename, u.alternatename, u.lastnamephonetic, u.firstnamephonetic
+				FROM {log} l
+					LEFT OUTER JOIN {user} u ON l.userid = u.id
+				WHERE time > ?
+				AND course = ?
+				AND module = 'course'
+				AND (action = 'add mod' OR action = 'update mod' OR action = 'delete mod')
+				ORDER BY id ASC";
+	    } else {
+	        $logtable = $reader->get_internal_log_table_name();
+	        $sql = "
+	        	SELECT l.*, u.firstname, u.lastname, u.picture, u.middlename, u.alternatename
+				FROM {" . $logtable . "} l
+					LEFT OUTER JOIN {user} u ON l.userid = u.id
+				WHERE l.timecreated > ?
+				AND courseid = ?
+				AND target = 'course_module'
+				AND (action = 'created' OR action = 'updated' OR action = 'deleted')
+				ORDER BY id ASC";
+	    }
 
         // Gather recent activity.
         foreach ($courses as $course) {
@@ -168,14 +205,6 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
             $index         = 0;
 
             $params = array($timestart, $course->id);
-            $sql = "SELECT l.*, u.firstname, u.lastname, u.picture
-                      FROM {log} l
-           LEFT OUTER JOIN {user} u ON l.userid = u.id
-                     WHERE time > ?
-                       AND course = ?
-                       AND module = 'course'
-                       AND (action = 'add mod' OR action = 'update mod' OR action = 'delete mod')
-                  ORDER BY id ASC";
 
             $logs = $DB->get_records_sql($sql, $params);
 
@@ -184,7 +213,33 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
                 $actions    = array('add mod', 'update mod', 'delete mod');
                 $newgones   = array(); // Added and later deleted items.
                 foreach ($logs as $key => $log) {
-                    $info = explode(' ', $log->info);
+		    		if ($reader instanceof logstore_legacy\log\store) {
+		    			$loginfo = $log->info;
+	                    $info = explode(' ', $log->info);
+	                    $action = $log->action;
+	                    $logcmid = $log->cmid;
+	                    $logtime = $log->time;
+					} else {
+						$action = ($log->action == 'created') ? 'add mod' : 
+							($log->action == 'updated' ? 'update mod' : 'delete mod');
+						$logcmid = $log->objectid;
+						$logtime = $log->timecreated;
+						$info = array();
+						
+						//get module name and instance id from other column of standard log which maybe in the format
+						//a:3:{s:10:"modulename";s:6:"assign";s:10:"instanceid";i:33;s:4:"name";s:16:"Chapter 1 review";}
+						//OR  a:3:{s:10:"modulename";s:6:"assign";s:10:"instanceid";s:2:"33";s:4:"name";s:20:"Chapter 1 & 2 review";}					
+						$other = unserialize($log->other);
+						if (!empty($other['modulename'])) {
+							$info[0] = $other['modulename'];
+							$loginfo = $other['modulename'];
+						}
+						if (!empty($other['instanceid'])) {
+							$info[1] = $other['instanceid'];
+							$loginfo = $loginfo . ' ' . $other['instanceid'];
+						}
+						
+					}
                     $itemtosave = null;
 
                     // Labels are ignored in recent activity.
@@ -225,19 +280,19 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
                         $a = false;
                     }
 
-                    if ($log->action == 'delete mod') {
+                    if ($action == 'delete mod') {
                         // Unfortunately we do not know if the mod was visible.
-                        if (!array_key_exists($log->info, $newgones)) {
+                        if (!array_key_exists($loginfo, $newgones)) {
                             if ($a) {
                                 $strdeleted = get_string('deletedactivity', 'block_intelligent_learning', $a);
                             } else {
                                 $strdeleted = get_string('deletedactivity', 'moodle', get_string('modulename', $modname));
                             }
                             $itemtosave = (object) array(
-                                'cmid' => $log->cmid,
+                                'cmid' => $logcmid,
                                 'type' => $modname,
                                 'name' => '',
-                                'timestamp' => $log->time,
+                                'timestamp' => $logtime,
                                 'description_html' => $strdeleted,
                                 'description_text' => $strdeleted,
                                 'accessible' => '',
@@ -246,14 +301,14 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
                             if ($collapse) {
                                 $changelist[] = $itemtosave;
                             } else {
-                                $changelist[$log->info] = $itemtosave;
+                                $changelist[$loginfo] = $itemtosave;
                             }
                         }
                     } else {
                         if (!isset($modinfo->instances[$modname][$instanceid])) {
-                            if ($log->action == 'add mod') {
+                            if ($action == 'add mod') {
                                 // Do not display added and later deleted activities.
-                                $newgones[$log->info] = true;
+                                $newgones[$loginfo] = true;
                             }
                             continue;
                         }
@@ -262,7 +317,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
                             continue;
                         }
 
-                        if ($log->action == 'add mod') {
+                        if ($action == 'add mod') {
                             if ($a) {
                                 $stradded = get_string('addedactivity', 'block_intelligent_learning', $a);
                             } else {
@@ -272,7 +327,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
                                 'cmid' => $cm->id,
                                 'type' => $modname,
                                 'name' => $cm->name,
-                                'timestamp' => $log->time,
+                                'timestamp' => $logtime,
                                 'description_html' => "$stradded:<br /><a href=\"$CFG->wwwroot/mod/$cm->modname/view.php?id={$cm->id}\">".format_string($cm->name, true).'</a>',
                                 'description_text' => "$stradded: ".format_string($cm->name, true),
                                 'accessible' => $cm->uservisible,
@@ -281,9 +336,9 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
                             if ($collapse) {
                                 $changelist[] = $itemtosave;
                             } else {
-                                $changelist[$log->info] = $itemtosave;
+                                $changelist[$loginfo] = $itemtosave;
                             }
-                        } else if ($log->action == 'update mod' and (($collapse) or (!$collapse and empty($changelist[$log->info])))) {
+                        } else if ($action == 'update mod' and (($collapse) or (!$collapse and empty($changelist[$loginfo])))) {
                             if ($a) {
                                 $strupdated = get_string('updatedactivity', 'block_intelligent_learning', $a);
                             } else {
@@ -293,7 +348,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
                                 'cmid' => $cm->id,
                                 'type' => $modname,
                                 'name' => $cm->name,
-                                'timestamp' => $log->time,
+                                'timestamp' => $logtime,
                                 'description_html' => "$strupdated:<br /><a href=\"$CFG->wwwroot/mod/$cm->modname/view.php?id={$cm->id}\">".format_string($cm->name, true).'</a>',
                                 'description_text' => "$strupdated: ".format_string($cm->name, true),
                                 'accessible' => $cm->uservisible,
@@ -302,7 +357,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
                             if ($collapse) {
                                 $changelist[] = $itemtosave;
                             } else {
-                                $changelist[$log->info] = $itemtosave;
+                                $changelist[$loginfo] = $itemtosave;
                             }
                         }
                     }
