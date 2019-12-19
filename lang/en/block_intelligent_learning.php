@@ -196,3 +196,34 @@ $string['ilpapi_certexplanation'] = 'IMPORTANT: Only use this setting if you are
         'the location of a certificate bundle if a default bundle is configured system-wide. However, under ' .
         'certain configurations, a default bundle is not available and the relative path to a certificate bundle must ' .
         'be specified. If your Moodle site is hosted by Moodlerooms, leave this field blank.';
+        
+//GDPR compatibility text
+$string['privacy:metadata:block_intelligent_learning'] = 'Information about the grades submitted to the Student Information System. This includes any midterm, final grades as well as last attended information.';
+$string['privacy:metadata:block_intelligent_learning:userid'] = 'The ID of the user with submitted grades.';
+$string['privacy:metadata:block_intelligent_learning:course'] = 'The ID of the course that grades were submitted for.';
+$string['privacy:metadata:block_intelligent_learning:mt1'] = 'The Midterm 1 grade when applicable.';
+$string['privacy:metadata:block_intelligent_learning:mt1userid'] = 'The ID of the user submitting the Midterm 1 grade.';
+$string['privacy:metadata:block_intelligent_learning:mt2'] = 'The Midterm 2 grade when applicable.';
+$string['privacy:metadata:block_intelligent_learning:mt2userid'] = 'The ID of the user submitting the Midterm 2 grade.';
+$string['privacy:metadata:block_intelligent_learning:mt3'] = 'The Midterm 3 grade when applicable.';
+$string['privacy:metadata:block_intelligent_learning:mt3userid'] = 'The ID of the user submitting the Midterm 3 grade.';
+$string['privacy:metadata:block_intelligent_learning:mt4'] = 'The Midterm 4 grade when applicable.';
+$string['privacy:metadata:block_intelligent_learning:mt4userid'] = 'The ID of the user submitting the Midterm 4 grade.';
+$string['privacy:metadata:block_intelligent_learning:mt5'] = 'The Midterm 5 grade when applicable.';
+$string['privacy:metadata:block_intelligent_learning:mt5userid'] = 'The ID of the user submitting the Midterm 5 grade.';
+$string['privacy:metadata:block_intelligent_learning:mt6'] = 'The Midterm 6 grade when applicable.';
+$string['privacy:metadata:block_intelligent_learning:mt6userid'] = 'The ID of the user submitting the Midterm 6 grade.';
+$string['privacy:metadata:block_intelligent_learning:finalgrade'] = 'The Final grade when applicable.';
+$string['privacy:metadata:block_intelligent_learning:finalgradeuserid'] = 'The ID of the user submitting the Final grade.';
+$string['privacy:metadata:block_intelligent_learning:expiredate'] = 'The Final grade expiration/extension date.';
+$string['privacy:metadata:block_intelligent_learning:expiredateuserid'] = 'The ID of the user submitting the final grade extension/expiration date.';
+$string['privacy:metadata:block_intelligent_learning:lastaccess'] = 'The Last Attended Date when applicable.';
+$string['privacy:metadata:block_intelligent_learning:lastaccessuserid'] = 'The ID of the user submitting the last attend date.';
+$string['privacy:metadata:block_intelligent_learning:neverattended'] = 'The never attended status when applicable.';
+$string['privacy:metadata:block_intelligent_learning:neverattendeduserid'] = 'The ID of the user submitting the never attended statsus.';
+$string['privacy:metadata:ilp_user_activities_service'] = 'In order to send activities for advising purposes through an integrated remote ILP service, user data needs to be exchanged with that service.';
+$string['privacy:metadata:ilp_user_activities_service:id'] = 'The userid is sent from Moodle to allow you or your advisors to access your data on the remote system.';
+$string['privacy:metadata:ilp_user_activities_service:firstname'] = 'Your first name is sent to the remote system to allow a better user experience.';
+$string['privacy:metadata:ilp_user_activities_service:lastname'] = 'Your last name is sent to the remote system to allow a better user experience.';
+$string['privacy:metadata:ilp_user_activities_service:email'] = 'Your email is sent to the remote system to enable communication with advisors.';
+$string['privacy:intelligentlearninggradespath'] = 'Course grades submitted to the Student Information System via Intelligent Learning Platform.';
