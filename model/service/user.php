@@ -301,7 +301,10 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             } else {
                 $groups = false;
             }
-            $events[$course->id] = calendar_get_upcoming(array($course->id), $groups, $user->id, $daysinfuture, 100, $fromdate);
+			
+			//unable to use recommended calendar block get_content since the input/output differ from what is needed here
+			//so implementing here call to calendar_get_events directly.
+            $events[$course->id] = $this->get_upcoming_calendar(array($course->id), $groups, $user->id, $daysinfuture, 100, $fromdate);
         }
         return $this->response->user_get_user_course_events($user, $courses, $events);
     }
@@ -522,6 +525,85 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             }
         }
     }
+    
+
+/**
+ * Gets the upcoming calendar event
+ *
+ * @param array $courses array of courses
+ * @param array|int|bool $groups array of groups, group id or boolean for all/no group events
+ * @param array|int|bool $users array of users, user id or boolean for all/no user events
+ * @param int $daysinfuture number of days in the future we 'll look
+ * @param int $maxevents maximum number of events
+ * @param int $fromtime start time
+ * @return array $output array of upcoming events
+ */
+private function get_upcoming_calendar($courses, $groups, $users, $daysinfuture, $maxevents, $fromtime=0) {
+    global $CFG, $COURSE, $DB;
+
+    $display = new stdClass;
+    $display->range = $daysinfuture; // How many days in the future we 'll look
+    $display->maxevents = $maxevents;
+
+    $output = array();
+
+    $processed = 0;
+    $now = time(); // We 'll need this later
+    $usermidnighttoday = usergetmidnight($now);
+
+    if ($fromtime) {
+        $display->tstart = $fromtime;
+    } else {
+        $display->tstart = $usermidnighttoday;
+    }
+    
+
+    // This works correctly with respect to the user's DST, but it is accurate
+    // only because $fromtime is always the exact midnight of some day!
+    $display->tend = usergetmidnight($display->tstart + DAYSECS * $display->range + 3 * HOURSECS) - 1;
+
+    // Get the events matching our criteria
+    $events = calendar_get_events($display->tstart, $display->tend, $users, $groups, $courses);
+
+    $hrefparams = array();
+    if(!empty($courses)) {
+        $courses = array_diff($courses, array(SITEID));
+        if(count($courses) == 1) {
+            $hrefparams['course'] = reset($courses);
+        }
+    }
+
+    if ($events !== false) {
+        foreach($events as $event) {
+            if (!empty($event->modulename)) {
+                if ($event->courseid == $COURSE->id) {
+                    if (isset($modinfo->instances[$event->modulename][$event->instance])) {
+                        $cm = $modinfo->instances[$event->modulename][$event->instance];
+                        if (!$cm->uservisible) {
+                            continue;
+                        }
+                    }
+                } else {
+                    if (!$cm = get_coursemodule_from_instance($event->modulename, $event->instance)) {
+                        continue;
+                    }
+                    if (!\core_availability\info_module::is_user_visible($cm, 0, false)) {
+                        continue;
+                    }
+                }
+            }
+
+            if ($processed >= $display->maxevents) {
+                break;
+            }
+
+            $event->time = calendar_format_event_time($event, $now, $hrefparams);
+            $output[] = $event;
+            ++$processed;
+        }
+    }
+    return $output;
+}
 
  
   //////////////////////////////////////NEW ILP API starts here/////////////////////////////////////////////////////////////
