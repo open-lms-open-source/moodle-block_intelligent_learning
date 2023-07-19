@@ -124,7 +124,7 @@ class blocks_intelligent_learning_model_service_enrolments extends blocks_intell
                     throw new Exception("Invalid enrollment start time greater than end time: role = $role user = $user course = $course timestart = $timestart timeend = $timeend");
                 }
                 try {
-                    $enrol->enrol_user($instance, $userid, $roleid, $timestart, $timeend);
+                    $enrol->enrol_user($instance, $userid, $roleid, $timestart, $timeend, ENROL_USER_ACTIVE);
                 } catch (Exception $e) {
                     throw new Exception('Failed to assigned role');
                 }
@@ -134,6 +134,13 @@ class blocks_intelligent_learning_model_service_enrolments extends blocks_intell
                     $enrol->unenrol_user($instance, $userid);
                 } catch (Exception $e) {
                     throw new Exception('Failed to removed role');
+                }
+                break;
+            case 'suspend':
+                try {
+                    $enrol->update_user_enrol($instance, $userid, ENROL_USER_SUSPENDED);
+                } catch (Exception $e) {
+                    throw new Exception('Failed to suspend role');
                 }
                 break;
             default:

@@ -83,18 +83,24 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
 
         list($action, $data) = $this->helper->xmlreader->validate_xml($xml, $this);
 
-        if (empty($data['idnumber'])) {
+        if($action == 'course_grade_user' && empty($data['id'])){
+			throw new Exception('No id passed, required');
+		}else if (empty($data['idnumber']) && $action != 'course_grade_user') {
             throw new Exception('No idnumber passed, required');
         }
 
         // Try to get the course that we are operating on.
         $course = false;
-
-        if ($courseid = $DB->get_field('course', 'id', array('idnumber' => $data['idnumber']))) {
-            $course = course_get_format($courseid)->get_course();
+        if(!empty($data['idnumber'])){
+            if ($courseid = $DB->get_field('course', 'id', array('idnumber' => $data['idnumber']))) {
+                $course = course_get_format($courseid)->get_course();
+            }
         }
 
         switch($action) {
+            case 'course_grade_user':          
+                return $this->course_grade_user($data);
+            break;
             case 'create':
             case 'add':
             case 'update':
@@ -122,6 +128,164 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
                 throw new Exception("Invalid action found: $action.  Valid actions: create, update, change and remove");
         }
         return $this->response->course_handle($course);
+        
+        // throw new Exception('No shortname passed, required when creating a course'.$abc->id);
+    }
+
+    protected function course_grade_user($data){
+        try {
+            $id = $data['id'];
+            $pagenumber = isset($data['pagenumber']) ? $data['pagenumber'] : 1;
+            $perpage = isset($data['perpage']) ? $data['perpage'] : 50;
+            $offset = $pagenumber*$perpage - $perpage;
+            global $DB;    
+
+            $teacher = [];
+            $course = [];
+            $user = [];
+            $roles = [];
+           
+            
+            $courseSql = "SELECT cm.id as courseid,
+                            cm.shortname as courseshortname,
+                            cm.category as coursecategoryid,
+                            cm.sortorder as coursecategorysortorder,
+                            cm.fullname as coursefullname,
+                            cm.fullname as coursedisplayname,
+                            cm.idnumber as courseidnumber,
+                            cm.summary as coursesummary,
+                            cm.summaryformat as coursesummaryformat,
+                            cm.format as courseformat,
+                            cm.showgrades as courseshowgrades,
+                            cm.newsitems as coursenewsitems,
+                            cm.startdate as coursestartdate,
+                            cm.enddate as courseenddate,
+                            cm.maxbytes as coursemaxbytes,
+                            cm.showreports as courseshowreports,
+                            cm.visible as coursevisible,
+                            cm.groupmode as coursegroupmode,
+                            cm.groupmodeforce as coursegroupmodeforce,
+                            cm.defaultgroupingid as coursedefaultgroupingid,
+                            cm.timecreated as coursetimecreated,
+                            cm.timemodified as coursetimemodified,
+                            cm.enablecompletion as courseenablecompletion,
+                            cm.completionnotify as coursecompletionnotify,
+                            cm.lang as courselang 
+                            from {course} as cm where cm.id = $id";
+                $courseRecords = $DB->get_records_sql($courseSql);
+                $context = context_course::instance($id);
+               
+                $usersSql = "SELECT  u.id as userid,
+                                u.username as username,
+                                u.firstname as userfirstname,
+                                u.lastname as userlastname,
+                                u.email as useremail,
+                                u.department as userdepartment,
+                                u.idnumber as useridnumber,
+                                u.picture as userpicture,
+                                u.picture as userpicture
+                                from {enrol} as enrol
+                                left join {user_enrolments} as ue on enrol.id = ue.enrolid 
+                                left join {role_assignments} as ra on ra.userid = ue.userid 
+                                left join {user} as u on u.id = ra.userid 
+                                where enrol.courseid= $id and ue.enrolid = enrol.id ";
+                $records = $DB->get_records_sql($usersSql);
+               
+                $gradeSql = "SELECT 
+                        gg.finalgrade as  finalgrade,
+                        gg.rawgrade as rawgrade,
+                        gg.userid as userid,
+                        gi.courseid
+                        from {grade_items} as gi
+                        left join {grade_grades} as gg on gg.itemid = gi.id
+                        where gi.courseid = $id and gi.itemname IS NULL ";
+                  
+                $gradeRecords = $DB->get_records_sql($gradeSql);
+               
+                foreach($courseRecords as $record){
+                    $course = array(
+                        "id"=> $record->courseid,
+                        "shortname"=> $record->courseshortname,
+                        "categoryid"=> $record->coursecategoryid,
+                        "fullname"=> $record->coursefullname,
+                        "displayname"=>  $record->coursefullname,
+                        "idnumber"=>  $record->courseidnumber,
+                        "summary"=>  $record->coursesummary,
+                        "summaryformat"=>  $record->coursesummaryformat,
+                        "format"=>  $record->courseformat,
+                        "showgrades"=>  $record->courseshowgrades,
+                        "newsitems"=>  $record->coursenewsitems,
+                        "startdate"=>  $record->coursestartdate,
+                        "enddate"=>  $record->courseenddate,
+                        "numsections"=>  $record->coursenumsections,
+                        "maxbytes"=>  $record->coursemaxbytes,
+                        "showreports"=>  $record->courseshowreports,
+                        "visible"=>  $record->coursevisible,
+                        "hiddensections"=>  $record->coursehiddensections,
+                        "groupmode"=>  $record->coursegroupmode,
+                        "groupmodeforce"=>  $record->coursegroupmodeforce,
+                        "defaultgroupingid"=>  $record->coursedefaultgroupingid,
+                        "timecreated"=>  $record->coursetimecreated,
+                        "timemodified"=>  $record->coursetimemodified,
+                        "enablecompletion"=>  $record->courseenablecompletion,
+                        "completionnotify"=>  $record->coursecompletionnotify,
+                        "lang"=>  $record->courselang,
+                    );
+                }
+                
+               
+                $userId = '';
+                $user = [];
+                foreach($records as $record){
+                
+                    $userId = $record->userid;
+                    $roles = [];
+                    $userRoles = get_user_roles($context, $userId, true);
+                    foreach( $userRoles as $role){
+                        $roles[] = array("role"=>array(
+                            "roleid" => $role->id,
+                            "name" => $role->name,
+                            "shortname" => $role->shortname,
+                            "sortorder" => $role->sortorder,
+                        ));
+                    }
+
+                    $grade = $this->getGradeDetails($gradeRecords, $record->userid);
+                    $grades = array(
+                        "courseid" => $grade->courseid,
+                        "grade" => $grade->finalgrade,
+                        "rawgrade" => $grade->rawgrade
+                    );
+
+                    $user[] =array( "user" => array(
+                        "id"=> $record->userid,
+                        "username"=> $record->username,
+                        "firstname"=> $record->userfirstname,
+                        "lastname"=> $record->userlastname,
+                        "fullname"=> $record->userfirstname." ".$record->userlastname,
+                        "email"=> $record->useremail,
+                        "department"=> $record->userdepartment,
+                        "idnumber"=> $record->useridnumber,
+                        "profileimageurlsmall"=> $record->userprofileimageurlsmall,
+                        "profileimageurl"=> $record->userprofileimageurl,
+                        'grades' => $grades,
+                        'roles' => $roles
+                    ));
+                }
+            
+            return $this->response->standard(array('course'=> $course, 'enrollments' =>  $user ));
+           
+        } catch (Exception $e) {
+            throw new Exception( $e->getMessage());
+        }
+    }
+
+    private function getGradeDetails($allGrades, $userId){
+        foreach($allGrades as $grade){
+            if($grade->userid == $userId){
+                return $grade;
+            }
+        }
     }
 
     /**
@@ -194,7 +358,9 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
         // Check if this is a metacourse.
         if (isset($data["children"])) {
             $children = $data["children"];
-            $metacourse = $this->process_metacourse($course, $children);
+            $crossliststartdate = $data["startdate"];
+            $crosslistenddate = $data["enddate"];
+            $metacourse = $this->process_metacourse($course, $children, $crossliststartdate, $crosslistenddate);
             
             //if parent course is assigned a valid end date, turn off auto end date setting
             if (!is_null($metacourse) and property_exists($metacourse, 'automaticenddate')) {
@@ -277,7 +443,9 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
         // Check if this is a metacourse.
         if (isset($data["children"])) {
             $children = $data["children"];
-            $this->process_metacourse($course, $children);
+            $crossliststartdate = $data["startdate"];
+            $crosslistenddate = $data["enddate"];
+            $this->process_metacourse($course, $children, $crossliststartdate, $crosslistenddate);
         }
     }
 
@@ -357,7 +525,7 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
      * @throws Exception
      * @return int
      */
-    protected function process_metacourse($course, $children) {
+    protected function process_metacourse($course, $children, $crossliststartdate, $crosslistenddate) {
         global $CFG, $DB;
         $metacourse = null;
         try {
@@ -365,8 +533,8 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
                 $parentfullname = "";
                 $parentcategory = "";
                 $parentshortname = "";
-                $parentstartdate = time();
-                $parentenddate = strtotime('1970-01-01');
+                $parentstartdate = $crossliststartdate;
+                $parentenddate = $crosslistenddate;
                 $parentautomaticenddate = 1;
 
                 $childids = explode(',', $children);
@@ -384,12 +552,10 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
                         $existingchild     = $DB->get_record('enrol', array('enrol' => 'meta', 'courseid' => $metacourse->id, 'customint1' => $child->id));
 
                         $parentfullname .= ", " . $child->fullname;
-                        $parentstartdate = min(array($parentstartdate, $child->startdate));
                         $parentcategory = $child->category;
                         $parentshortname .= ", " . $child->shortname;
                         //Add latest child course end date to parent, if end date exists 
                         if (property_exists($child, 'enddate')) {
-                        	$parentenddate = max(array($parentenddate, $child->enddate));
                         	
                         	//if auto end date setting not turned off already and start/end dates don't match
                         	//then turn setting off
@@ -424,9 +590,16 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
                 enrol_meta_sync($metacourse->id);
 
                 // Update the course title, category and start date with the values from the children.
+               
                 if (!empty($parentfullname) && ($parentfullname != "")) {
-                    $metacourse->fullname = ltrim($parentfullname, ", ");
-                    $metacourse->shortname = ltrim(substr($parentshortname, 0, 100), ", ");
+                    if(empty($metacourse->fullname)){
+                        $metacourse->fullname = ltrim($parentfullname, ", ");
+                    }
+                    if(empty($metacourse->shortname)){
+                        $metacourse->shortname = ltrim(substr($parentshortname, 0, 100), ", ");
+                    }
+                    // $metacourse->fullname = ltrim($parentfullname, ", ");
+                    // $metacourse->shortname = ltrim(substr($parentshortname, 0, 100), ", ");
                     $metacourse->startdate = $parentstartdate;
                     if ($metacourse->category == $CFG->defaultrequestcategory) {
                         $metacourse->category = $parentcategory;

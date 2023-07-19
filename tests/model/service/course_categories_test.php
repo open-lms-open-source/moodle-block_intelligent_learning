@@ -37,6 +37,7 @@ class blocks_intelligent_learning_model_service_course_categories_test extends a
         }
     }
     
+    
 //Commenting the test below since getMock() does not work with newer PHPUnit version
 //and unable to mock the add protected function without errors & warnings    
 
