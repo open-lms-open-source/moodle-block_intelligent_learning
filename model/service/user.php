@@ -53,6 +53,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
      */
     protected $userfields = array(
         'username',
+        'middlename',
         'password',
         'idnumber',
         'firstname',
@@ -83,9 +84,10 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
      * @param int $fromdate Unix timestamp of the start date
      * @param bool $collapse Send only most recent update to an activity, count the rest
      * @param int $percourse Limit number of activities per course
+     * @param $maxdays - maximum number of days from the start date of a class that it should stay in
      * @return string
      */
-    public function get_user_course_recent_activity($username = null, $userid = null, $course = null, $fromdate = null, $collapse = false, $percourse = 10) {
+    public function get_user_course_recent_activity($maxdays, $username = null, $userid = null, $course = null, $fromdate = null, $collapse = false, $percourse = 10) {
         global $USER;
 
         // Allow items to be retrieved using either username or idnumber.
@@ -97,7 +99,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
         } else {
             $user      = $this->helper->connector->get_user_by_id($userid);
         }
-        $courses   = $this->helper->connector->get_courses($user, $course);
+        $courses   = $this->helper->connector->get_courses($user, $course, $maxdays);
         $percourse = clean_param($percourse, PARAM_INT);
 
         // Switch user global out for cap checks and the like.
@@ -120,9 +122,10 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
      * @param string $userid - The user's id; either username or userid is required  
      * @param string $course The course's idnumber - if not passed, all user courses are returned
      * @param bool $deschtml Include HTML description
+     * @param $maxdays - maximum number of days from the start date of a class that it should stay in
      * @return string
      */
-    public function get_user_course_activities_due( $todate, $username = null, $userid = null, $course = null, $deschtml = true) {
+    public function get_user_course_activities_due( $todate, $maxdays, $username = null, $userid = null, $course = null, $deschtml = true) {
         global $CFG, $DB;
 
         $todate    = clean_param($todate, PARAM_INT);
@@ -138,7 +141,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             $user      = $this->helper->connector->get_user_by_id($userid);
         }
 
-        $courses = $this->helper->connector->get_courses($user, $course);
+        $courses = $this->helper->connector->get_courses($user, $course, $maxdays);
 
         if (!empty($CFG->gradebookroles)) {
             $gradebookroles = explode(',', $CFG->gradebookroles);
@@ -249,7 +252,6 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
         }
         return $this->response->user_get_user_course_activities_due($user, $courses, $dueactivities);
     }
-
     /**
      * Get a user's course calendar events
      *     
@@ -258,9 +260,10 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
      * @param string $username - The user's username; either username or id is required
      * @param string $userid - The user's id; either username or id is required
      * @param string $course The course's idnumber - if not passed, all user courses are returned
+     * @param $maxdays - maximum number of days from the start date of a class that it should stay in
      * @return string
      */
-    public function get_user_course_events($fromdate, $todate, $username = null, $userid = null, $course = null) {
+    public function get_user_course_events($fromdate, $todate, $maxdays, $username = null, $userid = null, $course = null) {
         global $CFG, $COURSE;
 
         require_once($CFG->dirroot.'/calendar/lib.php');
@@ -283,7 +286,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
             $user      = $this->helper->connector->get_user_by_id($userid);
         }
 
-        $courses = $this->helper->connector->get_courses($user, $course);
+        $courses = $this->helper->connector->get_courses($user, $course, $maxdays);
 
         if ($fromdate > $todate) {
             throw new Exception("From date ($fromdate) is greater than to date ($todate)");
@@ -410,9 +413,16 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
         }
         // Update data array.
         $data['username'] = $username;
+        $idnumber = $data['idnumber'];
 
         // Try to get user that we are operating on.
         $user = $DB->get_record('user', array('mnethostid' => $CFG->mnet_localhost_id, 'username' => $username));
+
+        // Try to get user based on the idnumber
+        // empty $(user) returns true if null, empty string, 0, false
+         if(empty($user)) {
+            $user = $DB->get_record('user', array('mnethostid' => $CFG->mnet_localhost_id, 'idnumber' => $idnumber));
+        }
 
         switch($action) {
             case 'create':
@@ -453,6 +463,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
         }
 
         $user = (object) truncate_userinfo($user);
+        $user->middlename = $data['middlename'];
         $user->modified   = time();
         $user->confirmed  = 1;
         $user->deleted    = 0;
@@ -517,6 +528,7 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
         if ($update) {
             // Make sure this is set properly.
             $record->id = $user->id;
+            $record->middlename = $data['middlename'];
 
             try {
                 $DB->update_record('user', $record);

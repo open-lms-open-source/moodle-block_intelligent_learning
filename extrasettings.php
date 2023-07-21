@@ -113,13 +113,10 @@ class admin_setting_intelligent_learning_catdate extends admin_setting {
      * @return string
      */
     public function output_html($data, $query='') {
-        global $CFG, $OUTPUT;
-
-        require_once($CFG->libdir.'/coursecatlib.php');
-
+        global $CFG, $OUTPUT;        
+        require_once($CFG->dirroot. '/course/lib.php');
         $helper = new mr_helper('blocks/intelligent_learning');
-
-        $displaylist = coursecat::make_categories_list();
+        $displaylist = core_course_category::make_categories_list();
         $category = html_writer::select($displaylist, $this->get_full_name().'_categoryid');
 
         $checkboxes = '';

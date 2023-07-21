@@ -176,22 +176,22 @@ $string['bannersection'] = 'Banner Settings';
 $string['maxnumberofdays'] = 'Maximum number of days to display classes';
 $string['maxnumberofdaysdesc'] = 'Maximum number of days to include classes, from a class start date, in requests by external applications';
 $string['metalink_label'] = 'Section enrollment';
-$string['livegrades'] = 'Live Grades Synchronization (ILP 4.2 or higher)';
+$string['livegrades'] = 'Live Grades Synchronization';
 $string['ilpapi_url'] = 'ILP API Url';
-$string['ilpapi_urldesc'] = 'IMPORTANT: Only use this setting if you are running ILP 4.2 or higher. Enter the URL of the ILP services website.';
+$string['ilpapi_urldesc'] = 'Enter the URL of the ILP services website.';
 $string['ilpapi_connectionid'] = 'ILP API Connection Id';
-$string['ilpapi_connectioniddesc'] = 'IMPORTANT: Only use this setting if you are running ILP 4.2 or higher. Enter the ILP API connection ID.';
+$string['ilpapi_connectioniddesc'] = 'Enter the ILP API connection ID.';
 $string['ilpapi_connectionpassword'] = 'ILP API Connection Password';
-$string['ilpapi_connectionpassworddesc'] = 'IMPORTANT: Only use this setting if you are running ILP 4.2 or higher. Enter the ILP API connection password.';
+$string['ilpapi_connectionpassworddesc'] = 'Enter the ILP API connection password.';
 $string['ilpapi_error_student'] = 'Error updating data for student {$a}';
 $string['ilpapi_error'] = 'Some grades could not be updated. Please correct the errors listed above and resubmit.';
 $string['ilpapi_service_error'] = 'Error communicating with grades service. Please contact your administrator for assistance.';
 $string['ilpapi_generic_error'] = 'Unable to update grades. Please contact your administrator for assistance.';
 $string['ilpapi_issslcaauthority'] = 'Is the ILP Services site SSL certificate issued by a Certificate Authority (CA)?';
 $string['ilpapi_certpath'] = 'Optional: path to CA Certificate Bundle';
-$string['ilpapi_sslcawarning'] = 'IMPORTANT: Only use this setting if you are running ILP 4.2 or higher. Without a certificate issued by a CA, the communications between Moodle and ILP are ' .
+$string['ilpapi_sslcawarning'] = 'Without a certificate issued by a CA, the communications between Moodle and ILP are ' .
         'less secure since Moodle will trust any certificate it receives.';
-$string['ilpapi_certexplanation'] = 'IMPORTANT: Only use this setting if you are running ILP 4.2 or higher. If the SSL certificate used by the ILP Services site was issue by a CA, you may use this field to ' .
+$string['ilpapi_certexplanation'] = 'If the SSL certificate used by the ILP Services site was issue by a CA, you may use this field to ' .
         'specify the location of the CA certificate bundle in your system. In most cases you will not need to specify ' .
         'the location of a certificate bundle if a default bundle is configured system-wide. However, under ' .
         'certain configurations, a default bundle is not available and the relative path to a certificate bundle must ' .

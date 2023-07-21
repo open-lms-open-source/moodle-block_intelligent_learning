@@ -120,10 +120,7 @@ class blocks_intelligent_learning_helper_date extends mr_helper_abstract {
         if (!is_numeric($dmy->Y) or strlen($dmy->Y) != 4) {
             throw new moodle_exception('invalidyear', 'block_intelligent_learning', '', $a);
         }
-        $maxdays = cal_days_in_month(CAL_GREGORIAN, $dmy->m, $dmy->Y);
-        if (!is_numeric($dmy->d) or $dmy->d < 0 or $dmy->d > $maxdays) {
-            throw new moodle_exception('invalidday', 'block_intelligent_learning', '', $a);
-        }
+        
 
         $timestamp = @strtotime("$dmy->m/$dmy->d/$dmy->Y");
 
