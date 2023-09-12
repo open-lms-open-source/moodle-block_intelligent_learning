@@ -94,6 +94,10 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
         if(!empty($data['idnumber'])){
             if ($courseid = $DB->get_field('course', 'id', array('idnumber' => $data['idnumber']))) {
                 $course = course_get_format($courseid)->get_course();
+                // Validate if the course object is valid
+                if (empty($course->idnumber) || empty($course->id)) {
+                    $course = false; // invalidate the course
+                }
             }
         }
 
@@ -120,8 +124,12 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             case 'remove':
             case 'delete':
             case 'drop':
-                if ($course and !@delete_course($course, false)) {
-                    throw new Exception("Failed to delete course (idnumber = $course->idnumber)");
+                if ($course) {
+                    if (!@delete_course($course, false)) {
+                        throw new Exception("Failed to delete course (idnumber = $course->idnumber)");
+                    }
+                } else {
+                    throw new Exception('Course does not exist, cannot proceed with delete operation.');
                 }
                 break;
             default:

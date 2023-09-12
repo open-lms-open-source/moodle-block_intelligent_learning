@@ -271,7 +271,8 @@ class blocks_intelligent_learning_model_response extends mr_server_response_abst
             );
             if (array_key_exists($course->id, $events)) {
                 foreach ($events[$course->id] as $event) {
-                    if (!empty($event->modulename) or $event->courseid != $course->id) {
+                    //if events->modulename empty (eg: forum, assign, feedback then continue)
+                    if (empty($event->modulename) or $event->courseid != $course->id) {
                         continue;
                     }
                     $startdate = usergetdate($event->timestart);

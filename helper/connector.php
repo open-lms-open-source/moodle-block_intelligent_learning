@@ -407,7 +407,8 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
         // Order the recent activity.
         foreach ($recentactivity as $courseid => $activities) {
             // Reorder.
-            uasort($activities, create_function('$a, $b', 'return ($a->timestamp == $b->timestamp) ? 0 : (($a->timestamp > $b->timestamp) ? -1 : 1);'));
+            //create_function deprecated as of php 7.2
+            uasort($activities, function($a, $b) {return ($a->timestamp == $b->timestamp) ? 0 : (($a->timestamp > $b->timestamp) ? -1 : 1);});
 
             $recentactivity[$courseid] = array_values($activities);
         }

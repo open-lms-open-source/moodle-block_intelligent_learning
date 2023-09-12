@@ -196,15 +196,6 @@ class blocks_intelligent_learning_model_service_user extends blocks_intelligent_
                      WHERE l.deadline < ?
                        AND g.id IS NULL
                      UNION ALL
-                    SELECT cm.id AS cmid, m.name AS type, m.name AS module, a.name, a.intro AS descriptionhtml, a.timedue AS duedate, cm.visible, c.id AS contextid
-                      FROM {assignment} a
-                INNER JOIN {course_modules} cm ON cm.instance = a.id AND cm.course = ?
-                INNER JOIN {modules} m ON cm.module = m.id AND m.name = 'assignment'
-                INNER JOIN {context} c ON c.instanceid = cm.id AND c.contextlevel = ?
-           LEFT OUTER JOIN {assignment_submissions} s ON a.id = s.assignment AND s.userid = ?
-                     WHERE a.timedue < ?
-                       AND s.id IS NULL
-                     UNION ALL
                     SELECT cm.id AS cmid, 'assignment' AS type, m.name AS module, a.name, a.intro AS descriptionhtml, a.duedate, cm.visible, c.id AS contextid
                       FROM {assign} a
                 INNER JOIN {course_modules} cm ON cm.instance = a.id AND cm.course = ?
@@ -643,7 +634,7 @@ private function get_upcoming_calendar($courses, $groups, $users, $daysinfuture,
     *
     * @return array
     */
-    public function get_user_activities($studentIds, $startDate = null, $endDate = null) {
+    public function get_user_activities($studentIds, $startDate = null, $endDate = null, $maxdays = null) {
 
         global $DB;
         
@@ -671,7 +662,7 @@ private function get_upcoming_calendar($courses, $groups, $users, $daysinfuture,
     
             $user = $DB->get_record_sql($sql, $sql_param);
             if (!empty ($user)) {
-            $sections = $this->helper->connector->get_courses($user, "");
+            $sections = $this->helper->connector->get_courses($user, "", $maxdays);
             //die(var_export($sections, false));
             foreach ($sections as $section){
             if(!empty($section->idnumber)){
