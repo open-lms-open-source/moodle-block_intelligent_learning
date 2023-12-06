@@ -421,7 +421,7 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             if (!in_array($key, $this->coursefields)) {
                 continue;
             }
-            if ($key != 'id' and $key != 'visible' and isset($course->$key) and $course->$key != $value) {
+            if ($key != 'id' and isset($course->$key) and $course->$key != $value) {
                 switch ($key) {
                     case 'idnumber':
                     case 'shortname':

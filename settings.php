@@ -115,7 +115,7 @@ if ($ADMIN->fulltree) {
         $helper->date->get_formats()
     );
     /*
-     * Category grade cutoff
+     * Category grade cutoff*/
      
     $configs[] = new admin_setting_intelligent_learning_catdate(
         'categorycutoff',
@@ -123,7 +123,7 @@ if ($ADMIN->fulltree) {
         new lang_string('categorycutoffdesc', 'block_intelligent_learning'),
         ''
     );
-    */
+
 
     $options   = array(
         1 => '1',

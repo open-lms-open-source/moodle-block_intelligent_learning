@@ -56,7 +56,7 @@ class blocks_intelligent_learning_model_service_groups_members extends blocks_in
         'course'     => array('required' => 1, 'type' => PARAM_TEXT),
         'user'       => array('required' => 0, 'type' => PARAM_TEXT),
         'idnumber'   => array('required' => 0, 'type' => PARAM_TEXT),
-        'groupname'  => array('required' => 1, 'type' => PARAM_TEXT),
+        'groupname'  => array('type' => PARAM_TEXT),
     );
 
     protected $actions = array(
@@ -98,10 +98,9 @@ class blocks_intelligent_learning_model_service_groups_members extends blocks_in
                 throw new Exception("Passed username doesn't exist: $data->user");
             }
         }
-        if (!$group = $DB->get_record('groups', array('name' => $data->groupname, 'courseid' => $course->id))) {
-            throw new Exception("Passed group doesn't exist: group name = $data->groupname, course idnumber = $course->idnumber");
+        if (!$group = $DB->get_record('groups', array('courseid' => $course->id))) {
+            throw new Exception("Failed to add enrollment to group as Passed group doesn't exist: with course idnumber = $course->idnumber. But the enrollment is assigned to the section successfully.");
         }
-
         switch ($action) {
             case 'create':
             case 'add':

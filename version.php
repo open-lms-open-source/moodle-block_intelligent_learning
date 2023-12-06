@@ -44,11 +44,11 @@
  * @package block_intelligent_learning
  *
  **/
-
-$plugin->version = 2023090401;
+    
+$plugin->version = 2023110601;
 $plugin->requires = 2015111610;	// Moodle 3.0.10 is required, PHP7 required
 $plugin->component = 'block_intelligent_learning';
-$plugin->release   = '3.2.4 (Build: 2023090401)';
+$plugin->release   = '3.2.5 (Build: 2023110601)';
 $plugin->dependencies = array(
     'local_mr' => 2010090201,
     'mod_assign' => ANY_VERSION,

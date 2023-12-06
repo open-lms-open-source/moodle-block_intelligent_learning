@@ -56,7 +56,7 @@ class blocks_intelligent_learning_model_service_groups extends blocks_intelligen
 
     protected $mapoptions = array(
         'course' => array('required' => 1, 'type' => PARAM_TEXT),
-        'name' => array('required' => 1, 'type' => PARAM_TEXT),
+        'name' => array('type' => PARAM_TEXT),
         'newname' => array('type' => PARAM_TEXT),
         'description' => array('type' => PARAM_CLEAN),
         'enrolmentkey' => array('type' => PARAM_TEXT),
@@ -118,7 +118,7 @@ class blocks_intelligent_learning_model_service_groups extends blocks_intelligen
         if (property_exists($data, 'hidepicture') and is_null($data->hidepicture)) {
             $data->hidepicture = 0;
         }
-        $group = $DB->get_record('groups', array('name' => $data->name, 'courseid' => $data->courseid));
+        $group = $DB->get_record('groups', array('courseid' => $data->courseid));
 
         switch ($action) {
             case 'create':
@@ -145,7 +145,7 @@ class blocks_intelligent_learning_model_service_groups extends blocks_intelligen
             case 'drop':
                 if ($group) {
                     if (!groups_delete_group($group->id)) {
-                        throw new Exception("Failed to delete group name = $data->name and course ID = $data->courseid");
+                        throw new Exception("Failed to delete group for course ID = $data->courseid");
                     }
                 }
                 break;
