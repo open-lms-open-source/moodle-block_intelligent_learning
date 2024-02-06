@@ -152,6 +152,7 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             $course = [];
             $user = [];
             $roles = [];
+            $categoryArr = [];
            
             
             $courseSql = "SELECT cm.id as courseid,
@@ -244,8 +245,13 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
                
                 $userId = '';
                 $user = [];
-                foreach($records as $record){
+                $courseCategoryId = $course["categoryid"];
+                //sets exceededCategoryCutoff field in course if it exceeds the cutoff time
+                if ($this->exceededCategoryGradeCutOff($courseCategoryId)) {
+                    $course["exceededCategoryCutoff"] = true;
+                }
                 
+                foreach($records as $record) {
                     $userId = $record->userid;
                     $roles = [];
                     $userRoles = get_user_roles($context, $userId, true);
@@ -286,6 +292,21 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
         } catch (Exception $e) {
             throw new Exception( $e->getMessage());
         }
+    }
+
+     /**
+	 * @param courseCategoryId The course categoryId present in mdl_course_categories
+     * returns boolean if the time exceeds the cutoff time
+	 */
+    public function exceededCategoryGradeCutOff($courseCategoryId) {
+            $config = get_config('blocks/intelligent_learning', 'categorycutoff');
+            if (!empty($config)) {
+                parse_str($config, $this->categoryArr);
+            }
+            if (array_key_exists($courseCategoryId, $this->categoryArr)) {
+                return (time() > $this->categoryArr[$courseCategoryId]);
+            }
+            return false;
     }
 
     private function getGradeDetails($allGrades, $userId){
@@ -417,6 +438,12 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
 
         $update = false;
         $record = new stdClass;
+        $modifySectionVisibility = get_config('blocks/intelligent_learning', 'modifysectionvisibility');
+
+        //If the toogle Modify Section Visibility is No for section change-request then we delete the visible field from changeRequest($data)
+        if (!isset($data["children"]) && $modifySectionVisibility == '0') {
+            unset($data["visible"]); 
+        }
         foreach ($data as $key => $value) {
             if (!in_array($key, $this->coursefields)) {
                 continue;

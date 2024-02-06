@@ -80,6 +80,14 @@ if ($ADMIN->fulltree) {
     );
 
     $configs[] = new admin_setting_configselect(
+        'modifysectionvisibility',
+        new lang_string('modifysectionvisibility', 'block_intelligent_learning'),
+        new lang_string('modifysectionvisibilitydesc', 'block_intelligent_learning'),
+        0,
+        $yesnooptions
+    );
+
+    $configs[] = new admin_setting_configselect(
         'showlastattendance',
         new lang_string('showlastattendance', 'block_intelligent_learning'),
         new lang_string('showlastattendancedesc', 'block_intelligent_learning'),
@@ -134,8 +142,7 @@ if ($ADMIN->fulltree) {
         6 => '6'
     );
 
-    /*
-    * Midterm Grades
+
     $configs[] = new admin_setting_configselect(
         'midtermgradecolumns',
         new lang_string('midtermgradecolumns', 'block_intelligent_learning'),
@@ -143,7 +150,6 @@ if ($ADMIN->fulltree) {
         1,
         $options
     );
-    */
 
      $configs[] = new admin_setting_configselect(
         'gradevalidatelocalgradescheme',

@@ -203,3 +203,5 @@ $string['privacy:metadata:ilp_user_activities_service:lastname'] = 'Your last na
 $string['privacy:metadata:ilp_user_activities_service:email'] = 'Your email is sent to the remote system to enable communication with advisors.';
 $string['privacy:metadata:ilp_user_activities_service:sourcedid'] = 'The user\'s idnumber';
 $string['privacy:intelligentlearninggradespath'] = 'Course grades submitted to the Student Information System via Intelligent Learning Platform.';
+$string['modifysectionvisibilitydesc'] = 'Permitir a ILP administrar los cambios de visibilidad de las secciones';
+$string['modifysectionvisibility'] = 'Modificar la visibilidad de las secciones';
