@@ -90,7 +90,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
      *
      * @param object $user User record object
      * @param mixed $course The course to fetch (idnumber or empty for all courses)
-     * @param $maxdays - maximum number of days from the start date of a class that it should stay in 
+     * @param $maxdays - maximum number of days from the start date of a class that it should stay in
      * @return array
      */
     public function get_courses($user, $idnumber, $maxdays) {
@@ -487,7 +487,7 @@ class block_intelligent_learning_helper_connector extends mr_helper_abstract {
      */
     private function exclude_old_courses($courses, $maxdays) {
 
-        $currentcourses = array();
+        $currentcourses = array(); 
 
         if (isset($maxdays) && is_numeric($maxdays) && ($maxdays > 0)) {
             try {

@@ -205,3 +205,6 @@ $string['privacy:metadata:ilp_user_activities_service:sourcedid'] = 'The user\'s
 $string['privacy:intelligentlearninggradespath'] = 'Course grades submitted to the Student Information System via Intelligent Learning Platform.';
 $string['modifysectionvisibilitydesc'] = 'Permitir a ILP administrar los cambios de visibilidad de las secciones';
 $string['modifysectionvisibility'] = 'Modificar la visibilidad de las secciones';
+$string['modifycrosslistvisibilitydesc'] = 'Permitir a ILP gestionar los cambios de visibilidad de las listas cruzadas';
+$string['modifycrosslistvisibility'] = 'Modificar la visibilidad de las listas cruzadas';
+

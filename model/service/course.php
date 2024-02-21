@@ -125,6 +125,17 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             case 'delete':
             case 'drop':
                 if ($course) {
+                     /*
+                        If a crosslist is getting deleted then make the child section visible
+                        and then delete the crosslist, the crosslist has a enrol status of meta in enrol table for child section mapping to the parent crosslist course
+                    */
+                    $courseRecord = $DB->get_record('course', array('idnumber' => $course->idnumber), '*', MUST_EXIST);
+                    $childSections = $DB->get_records('enrol', array('enrol' => 'meta', 'courseid' => $courseRecord->id), null, '*');
+                    foreach ($childSections as $childSection) {
+                        $sectionRecord = $DB->get_record('course', array('id' => $childSection->customint1), '*', MUST_EXIST);
+                        $sectionRecord->visible = true;
+                        $DB->update_record('course', $sectionRecord);
+                    }
                     if (!@delete_course($course, false)) {
                         throw new Exception("Failed to delete course (idnumber = $course->idnumber)");
                     }
@@ -439,11 +450,18 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
         $update = false;
         $record = new stdClass;
         $modifySectionVisibility = get_config('blocks/intelligent_learning', 'modifysectionvisibility');
+        $modifyCrosslistvisibility = get_config('blocks/intelligent_learning', 'modifycrosslistvisibility');
 
-        //If the toogle Modify Section Visibility is No for section change-request then we delete the visible field from changeRequest($data)
+        //If the toggle Modify Section Visibility is No for section change-request then we delete the visible field from changeRequest($data)
         if (!isset($data["children"]) && $modifySectionVisibility == '0') {
             unset($data["visible"]); 
         }
+
+        //If the toggle Modify Crosslist Visibility is No for crosslist change-request then we delete the visible field from changeRequest($data)
+        if (isset($data["children"]) && $modifyCrosslistvisibility == '0') {
+            unset($data["visible"]); 
+        }
+
         foreach ($data as $key => $value) {
             if (!in_array($key, $this->coursefields)) {
                 continue;
@@ -617,6 +635,10 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
                     foreach ($currentchildren as $checkchild) {
                         if (!in_array($checkchild->customint1, $requestchildren)) {
                             // This child is not in the current list; remove the meta link.
+                            //take the uncrosslistedChildSection and set its visibile field to true and update the record
+                            $uncrosslistedChildSection = $DB->get_record('course', array('id' => $checkchild->customint1), '*', MUST_EXIST);
+                            $uncrosslistedChildSection->visible = true;
+                            $DB->update_record('course', $uncrosslistedChildSection);
                             $eid = $enrol->delete_instance($checkchild);
                         }
                     }

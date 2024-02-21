@@ -88,6 +88,14 @@ if ($ADMIN->fulltree) {
     );
 
     $configs[] = new admin_setting_configselect(
+        'modifycrosslistvisibility',
+        new lang_string('modifycrosslistvisibility', 'block_intelligent_learning'),
+        new lang_string('modifycrosslistvisibilitydesc', 'block_intelligent_learning'),
+        0,
+        $yesnooptions
+    );
+
+    $configs[] = new admin_setting_configselect(
         'showlastattendance',
         new lang_string('showlastattendance', 'block_intelligent_learning'),
         new lang_string('showlastattendancedesc', 'block_intelligent_learning'),
