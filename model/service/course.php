@@ -163,7 +163,6 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
             $course = [];
             $user = [];
             $roles = [];
-            $categoryArr = [];
            
             
             $courseSql = "SELECT cm.id as courseid,
@@ -309,16 +308,18 @@ class blocks_intelligent_learning_model_service_course extends blocks_intelligen
 	 * @param courseCategoryId The course categoryId present in mdl_course_categories
      * returns boolean if the time exceeds the cutoff time
 	 */
-    public function exceededCategoryGradeCutOff($courseCategoryId) {
-            $config = get_config('blocks/intelligent_learning', 'categorycutoff');
-            if (!empty($config)) {
-                parse_str($config, $this->categoryArr);
+   public function exceededCategoryGradeCutOff($courseCategoryId) {
+        $config = get_config('blocks/intelligent_learning', 'categorycutoff');
+        $categoryArr = [];
+        if (!empty($config)) {
+            parse_str($config, $categoryArr);
+            if (array_key_exists($courseCategoryId, $categoryArr)) {
+                return (time() > $categoryArr[$courseCategoryId]);
             }
-            if (array_key_exists($courseCategoryId, $this->categoryArr)) {
-                return (time() > $this->categoryArr[$courseCategoryId]);
-            }
-            return false;
-    }
+        }
+    
+        return false;
+   }
 
     private function getGradeDetails($allGrades, $userId){
         foreach($allGrades as $grade){
